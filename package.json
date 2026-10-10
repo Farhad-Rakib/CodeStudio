@@ -1,6 +1,6 @@
 {
   "name": "dotpilot",
-  "displayName": "DotPilot Solution Explorer",
+  "displayName": "DotPilot - vscode dev assistant for .NET", 
   "description": "A Visual Studio-inspired Solution Explorer, virtual solution folders, .NET CLI commands and themes for VS Code.",
   "version": "0.1.0",
   "publisher": "dotpilot",
