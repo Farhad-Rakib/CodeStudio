@@ -1,9 +1,10 @@
-// Pure generation and merging of DotPilot's managed .editorconfig section. No 'vscode' import.
+// Pure generation and merging of CodeStudio's managed .editorconfig section. No 'vscode' import.
 import { NamingStyle } from './naming';
 import { CodingStandards, SymbolKind, requirementFor } from './standards-config';
 
-export const BEGIN_MARKER = '# BEGIN DotPilot coding standards';
-export const END_MARKER = '# END DotPilot coding standards';
+export const BEGIN_MARKER = '# BEGIN CodeStudio coding standards';
+export const END_MARKER = '# END CodeStudio coding standards';
+const MARKER_PAIRS: readonly [string, string][] = [[BEGIN_MARKER, END_MARKER]];
 
 function capitalization(style: NamingStyle): { capitalization: string; prefix?: string; separator?: string } {
   switch (style) {
@@ -45,7 +46,7 @@ export function generateSection(s: CodingStandards): string {
   const sev = s.severity;
   const lines: string[] = [
     BEGIN_MARKER,
-    '# Generated from Settings > Extensions > DotPilot > Coding Standards.',
+    '# Generated from Settings > Extensions > CodeStudio > Coding Standards.',
     '# Edits inside this block are overwritten; put your own rules outside it.',
     '[*.cs]',
     '',
@@ -95,14 +96,17 @@ export function generateSection(s: CodingStandards): string {
 }
 
 function findSection(text: string): { start: number; end: number } | undefined {
-  const start = text.indexOf(BEGIN_MARKER);
-  if (start < 0) return undefined;
-  const endMarker = text.indexOf(END_MARKER, start);
-  if (endMarker < 0) throw new Error(`.editorconfig contains "${BEGIN_MARKER}" without "${END_MARKER}"; fix the file manually.`);
-  let end = endMarker + END_MARKER.length;
-  if (text[end] === '\r') end++;
-  if (text[end] === '\n') end++;
-  return { start, end };
+  for (const [begin, endMarkerText] of MARKER_PAIRS) {
+    const start = text.indexOf(begin);
+    if (start < 0) continue;
+    const endMarker = text.indexOf(endMarkerText, start);
+    if (endMarker < 0) throw new Error(`.editorconfig contains "${begin}" without "${endMarkerText}"; fix the file manually.`);
+    let end = endMarker + endMarkerText.length;
+    if (text[end] === '\r') end++;
+    if (text[end] === '\n') end++;
+    return { start, end };
+  }
+  return undefined;
 }
 
 /**
@@ -112,8 +116,8 @@ function findSection(text: string): { start: number; end: number } | undefined {
 export function upsertSection(existing: string, section: string): string {
   const eol = existing.includes('\r\n') ? '\r\n' : '\n';
   let rest = existing;
-  const found = findSection(existing);
-  if (found) rest = existing.slice(0, found.start) + existing.slice(found.end);
+  // Remove every managed block (current and legacy markers) before appending the fresh one.
+  for (let found = findSection(rest); found; found = findSection(rest)) rest = rest.slice(0, found.start) + rest.slice(found.end);
   rest = rest.replace(/\s+$/, '');
   const body = section.replace(/\n/g, eol);
   if (rest === '') return `root = true${eol}${eol}${body}`;
@@ -129,11 +133,11 @@ export function removeSection(existing: string): string {
   return rest === '' ? '' : rest + eol;
 }
 
-/** True when nothing but `root = true` remains (the line DotPilot adds to a file it creates). */
+/** True when nothing but `root = true` remains (the line CodeStudio adds to a file it creates). */
 export function isOnlyRootLine(text: string): boolean {
   return /^root\s*=\s*true$/i.test(text.trim());
 }
 
 export function hasSection(text: string): boolean {
-  return text.includes(BEGIN_MARKER);
+  return MARKER_PAIRS.some(([begin]) => text.includes(begin));
 }

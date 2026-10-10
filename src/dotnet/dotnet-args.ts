@@ -95,3 +95,22 @@ export function newProjectArgs(template: string, name: string, outputDir: string
   requireAbsolute(outputDir, 'Output directory');
   return ['new', template, '-n', name, '-o', outputDir];
 }
+
+/** dotnet run --project <project> (uses launchSettings.json profiles when present) */
+export function runProjectArgs(project: string): string[] {
+  validateProjectPath(project);
+  return ['run', '--project', project];
+}
+
+const TFM_RE = /^net[a-z0-9.\-]{1,32}$/i;
+
+/** dotnet msbuild <project> -getProperty:TargetPath [-p:TargetFramework=<tfm>] (SDK 8+) */
+export function targetPathArgs(project: string, targetFramework?: string): string[] {
+  validateProjectPath(project);
+  const args = ['msbuild', project, '-getProperty:TargetPath', '-nologo'];
+  if (targetFramework) {
+    if (!TFM_RE.test(targetFramework)) throw new DotnetArgumentError(`"${targetFramework}" is not a valid target framework.`);
+    args.push(`-p:TargetFramework=${targetFramework}`);
+  }
+  return args;
+}

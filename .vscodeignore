@@ -7,3 +7,4 @@ out/test/**
 **/*.ts
 tsconfig.json
 scripts/**
+images/icon.svg

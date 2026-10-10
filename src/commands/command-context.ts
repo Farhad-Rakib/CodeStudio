@@ -25,7 +25,7 @@ export function registerCommand(ctx: CommandContext, id: string, title: string, 
       } catch (err) {
         // Validation errors are user mistakes: show them plainly without the log prompt.
         if (err instanceof LayoutError || err instanceof DotnetArgumentError || err instanceof UserFacingError) {
-          void vscode.window.showErrorMessage(`DotPilot: ${err.message}`);
+          void vscode.window.showErrorMessage(`CodeStudio: ${err.message}`);
           return undefined;
         }
         await reportError(ctx.logger, title, err);
@@ -39,7 +39,7 @@ export class UserFacingError extends Error {}
 
 export function requireSolution(ctx: CommandContext): LoadedSolution {
   const loaded = ctx.manager.solution;
-  if (!loaded) throw new UserFacingError('No solution is open. Run "DotPilot: Open Solution" first.');
+  if (!loaded) throw new UserFacingError('No solution is open. Run "CodeStudio: Open Solution" first.');
   return loaded;
 }
 

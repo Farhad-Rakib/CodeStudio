@@ -8,7 +8,7 @@ import { assignProject, LayoutError, moveFolder } from '../storage/layout-store'
 import { createTreeItem, ExplorerNode } from './solution-tree-item';
 import { buildStructure, filterStructure, StructureNode } from './tree-builder';
 
-const DRAG_MIME = 'application/vnd.code.tree.dotpilot.solutionexplorer';
+const DRAG_MIME = 'application/vnd.code.tree.codestudio.solutionexplorer';
 
 export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNode>, vscode.TreeDragAndDropController<ExplorerNode> {
   private readonly changed = new vscode.EventEmitter<ExplorerNode | undefined>();
@@ -28,7 +28,7 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
 
   setFilter(text: string): void {
     this.filterText = text.trim();
-    void vscode.commands.executeCommand('setContext', 'dotpilot.filterActive', this.filterText !== '');
+    void vscode.commands.executeCommand('setContext', 'codestudio.filterActive', this.filterText !== '');
     this.refresh();
   }
 
@@ -39,10 +39,12 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
   async getTreeItem(node: ExplorerNode): Promise<vscode.TreeItem> {
     if (node.type === 'structure' && node.node.kind === 'project') {
       try {
+        const startup = this.manager.solution?.layout.startupProject;
         const info = await this.manager.projectInfo(node.node.project.absolutePath);
-        return createTreeItem(node, this.filterText !== '', info);
+        return createTreeItem(node, this.filterText !== '', info, undefined, startup);
       } catch (err) {
-        return createTreeItem(node, this.filterText !== '', undefined, `Cannot read project file: ${(err as Error).message}`);
+        const startup = this.manager.solution?.layout.startupProject;
+        return createTreeItem(node, this.filterText !== '', undefined, `Cannot read project file: ${(err as Error).message}`, startup);
       }
     }
     return createTreeItem(node, this.filterText !== '');
@@ -120,7 +122,7 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
 
   private async projectChildren(project: SolutionProject): Promise<ExplorerNode[]> {
     const children: ExplorerNode[] = [{ type: 'dependencies', project }];
-    if (vscode.workspace.getConfiguration('dotpilot').get<boolean>('explorer.showPhysicalFiles', true)) {
+    if (vscode.workspace.getConfiguration('codestudio').get<boolean>('explorer.showPhysicalFiles', true)) {
       children.push(...(await this.directoryChildren(project, vscode.Uri.file(path.dirname(project.absolutePath)))));
     }
     return children;
@@ -128,7 +130,7 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
 
   private async directoryChildren(project: SolutionProject, dir: vscode.Uri): Promise<ExplorerNode[]> {
     const excluded = new Set(
-      (vscode.workspace.getConfiguration('dotpilot').get<string[]>('explorer.excludedFolders') ?? []).map(s => s.toLowerCase()),
+      (vscode.workspace.getConfiguration('codestudio').get<string[]>('explorer.excludedFolders') ?? []).map(s => s.toLowerCase()),
     );
     let entries: [string, vscode.FileType][];
     try {
@@ -169,7 +171,7 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
     if (!target || target.type === 'solution') folderId = undefined;
     else if (target.type === 'structure' && target.node.kind === 'virtualFolder') folderId = target.node.folder.id;
     else {
-      void vscode.window.showInformationMessage('DotPilot: Drop projects onto a virtual folder or the solution node. Solution folders from the .sln file are read-only.');
+      void vscode.window.showInformationMessage('CodeStudio: Drop projects onto a virtual folder or the solution node. Solution folders from the .sln file are read-only.');
       return;
     }
 
@@ -186,7 +188,7 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
       });
     } catch (err) {
       const message = err instanceof LayoutError ? err.message : `Move failed: ${(err as Error).message}`;
-      void vscode.window.showErrorMessage(`DotPilot: ${message}`);
+      void vscode.window.showErrorMessage(`CodeStudio: ${message}`);
     }
   }
 }

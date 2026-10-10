@@ -14,19 +14,19 @@ function explicitValue(s: RecommendedSetting, target: vscode.ConfigurationTarget
 }
 
 export function registerSettingsCommands(ctx: CommandContext): void {
-  registerCommand(ctx, 'dotpilot.applyRecommendedSettings', 'Apply Recommended Settings', async () => {
+  registerCommand(ctx, 'codestudio.applyRecommendedSettings', 'Apply Recommended Settings', async () => {
     const scopes: (vscode.QuickPickItem & { target: vscode.ConfigurationTarget })[] = [
       { label: '$(account) User settings', description: 'Applies to all workspaces', target: vscode.ConfigurationTarget.Global },
     ];
     if (vscode.workspace.workspaceFolders?.length) {
       scopes.push({ label: '$(folder) Workspace settings', description: '.vscode/settings.json', target: vscode.ConfigurationTarget.Workspace });
     }
-    const scope = await vscode.window.showQuickPick(scopes, { placeHolder: 'Where should DotPilot recommended settings be written?' });
+    const scope = await vscode.window.showQuickPick(scopes, { placeHolder: 'Where should CodeStudio recommended settings be written?' });
     if (!scope) return;
 
     const plan = planSettings(RECOMMENDED_SETTINGS, s => explicitValue(s, scope.target)).filter(p => p.status !== 'same');
     if (plan.length === 0) {
-      void vscode.window.showInformationMessage('DotPilot: All recommended settings are already applied.');
+      void vscode.window.showInformationMessage('CodeStudio: All recommended settings are already applied.');
       return;
     }
 
@@ -39,7 +39,7 @@ export function registerSettingsCommands(ctx: CommandContext): void {
     }));
     const picks = await vscode.window.showQuickPick(items, {
       canPickMany: true,
-      title: 'DotPilot recommended settings',
+      title: 'CodeStudio recommended settings',
       placeHolder: 'Review the changes. Settings you already set are unchecked and will not be changed unless you check them.',
       matchOnDetail: true,
     });
@@ -55,7 +55,7 @@ export function registerSettingsCommands(ctx: CommandContext): void {
         'Preview JSON',
       );
       if (choice === 'Preview JSON') {
-        const doc = await vscode.workspace.openTextDocument({ language: 'jsonc', content: `// DotPilot: settings that will be written\n${previewJson(selected)}\n` });
+        const doc = await vscode.workspace.openTextDocument({ language: 'jsonc', content: `// CodeStudio: settings that will be written\n${previewJson(selected)}\n` });
         await vscode.window.showTextDocument(doc, { preview: true });
         continue;
       }
@@ -67,6 +67,6 @@ export function registerSettingsCommands(ctx: CommandContext): void {
       await configFor(s).update(s.key, s.value, scope.target, s.language ? true : undefined);
       ctx.logger.info(`Applied setting ${displayKey(s)} = ${JSON.stringify(s.value)}`);
     }
-    void vscode.window.showInformationMessage(`DotPilot: Applied ${selected.length} recommended setting(s).`);
+    void vscode.window.showInformationMessage(`CodeStudio: Applied ${selected.length} recommended setting(s).`);
   });
 }

@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import { Logger } from '../logger';
 import { detectSdk, SdkInfo } from './sdk-detection';
 
-const TASK_SOURCE = 'DotPilot';
+const TASK_SOURCE = 'CodeStudio';
 
 /** Runs dotnet as a VS Code task (visible terminal, $msCompile problem matcher) or captured process. */
 export class DotnetRunner {
@@ -14,7 +14,7 @@ export class DotnetRunner {
   constructor(private readonly logger: Logger) {}
 
   get dotnetPath(): string {
-    return vscode.workspace.getConfiguration('dotpilot').get<string>('dotnetPath')?.trim() || 'dotnet';
+    return vscode.workspace.getConfiguration('codestudio').get<string>('dotnetPath')?.trim() || 'dotnet';
   }
 
   /** Cached SDK detection; a failure is not cached so the user can install the SDK and retry. */
@@ -38,6 +38,23 @@ export class DotnetRunner {
     this.sdk = undefined;
   }
 
+  /** Starts `dotnet <args>` as a task without waiting for it to finish (apps and servers keep running). */
+  async startTask(label: string, args: string[], cwd: string, targetPath: string): Promise<vscode.TaskExecution> {
+    await this.ensureSdk();
+    await assertExists(targetPath);
+    this.logger.info(`Start "${label}": ${this.dotnetPath} ${args.join(' ')} (cwd ${cwd})`);
+    const task = new vscode.Task(
+      { type: 'codestudio', label, target: targetPath },
+      vscode.workspace.getWorkspaceFolder(vscode.Uri.file(targetPath)) ?? vscode.TaskScope.Workspace,
+      label,
+      TASK_SOURCE,
+      new vscode.ProcessExecution(this.dotnetPath, args, { cwd }),
+      '$msCompile',
+    );
+    task.presentationOptions = { reveal: vscode.TaskRevealKind.Always, panel: vscode.TaskPanelKind.Dedicated, clear: true, focus: true };
+    return vscode.tasks.executeTask(task);
+  }
+
   /** Runs `dotnet <args>` as a task. Resolves with the exit code once the process ends. */
   async runTask(label: string, args: string[], cwd: string, targetPath: string): Promise<number | undefined> {
     await this.ensureSdk();
@@ -45,7 +62,7 @@ export class DotnetRunner {
     this.logger.info(`Task "${label}": ${this.dotnetPath} ${args.join(' ')} (cwd ${cwd})`);
 
     const task = new vscode.Task(
-      { type: 'dotpilot', label, target: targetPath },
+      { type: 'codestudio', label, target: targetPath },
       vscode.workspace.getWorkspaceFolder(vscode.Uri.file(targetPath)) ?? vscode.TaskScope.Workspace,
       label,
       TASK_SOURCE,

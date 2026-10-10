@@ -13,7 +13,7 @@ async function exists(p: string): Promise<boolean> {
 }
 
 export function registerFormatCommands(ctx: CommandContext): void {
-  registerCommand(ctx, 'dotpilot.installCSharpier', 'Install CSharpier', async () => {
+  registerCommand(ctx, 'codestudio.installCSharpier', 'Install CSharpier', async () => {
     const solutionDir = ctx.manager.solution?.model.directory;
     const choices: (vscode.QuickPickItem & { scope: 'local' | 'global' })[] = [];
     if (solutionDir) {
@@ -32,11 +32,11 @@ export function registerFormatCommands(ctx: CommandContext): void {
         await ctx.runner.exec(['tool', 'install', 'csharpier'], dir, 300000);
       }
     });
-    await vscode.workspace.getConfiguration('dotpilot.formatter').update('engine', 'csharpier', vscode.ConfigurationTarget.Workspace);
-    void vscode.window.showInformationMessage('DotPilot: CSharpier installed and selected as the C# formatter.');
+    await vscode.workspace.getConfiguration('codestudio.formatter').update('engine', 'csharpier', vscode.ConfigurationTarget.Workspace);
+    void vscode.window.showInformationMessage('CodeStudio: CSharpier installed and selected as the C# formatter.');
   });
 
-  registerCommand(ctx, 'dotpilot.formatDocument', 'Format Document', async () => {
+  registerCommand(ctx, 'codestudio.formatDocument', 'Format Document', async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;
     await vscode.commands.executeCommand('editor.action.formatDocument.multiple');

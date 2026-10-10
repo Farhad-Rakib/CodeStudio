@@ -128,7 +128,7 @@ describe('parseSlnx', () => {
   });
 
   it('round-trips a file written by `dotnet new sln --format slnx`', async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dotpilot-slnx-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codestudio-slnx-'));
     const file = path.join(dir, 'App.slnx');
     await fs.writeFile(file, '<Solution>\n  <Project Path="App/App.csproj" />\n</Solution>\n');
     const model = await readSolution(file);

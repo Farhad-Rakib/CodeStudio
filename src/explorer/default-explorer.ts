@@ -2,16 +2,16 @@ import * as vscode from 'vscode';
 import { Logger } from '../logger';
 
 export const SETTING = 'defaultExplorer';
-export const ACTIVITY_BAR_VIEW = 'dotpilot.solutionExplorer';
-export const EXPLORER_VIEW = 'dotpilot.solutionExplorer.explorer';
+export const ACTIVITY_BAR_VIEW = 'codestudio.solutionExplorer';
+export const EXPLORER_VIEW = 'codestudio.solutionExplorer.explorer';
 
-const FILES_HIDDEN_KEY = 'dotpilot.filesViewHiddenByDotPilot';
-const NOTIFIED_KEY = 'dotpilot.defaultExplorerNotified';
+const FILES_HIDDEN_KEY = 'codestudio.filesViewHiddenByCodeStudio';
+const NOTIFIED_KEY = 'codestudio.defaultExplorerNotified';
 
 /**
  * Makes Solution Explorer the default explorer: it is shown inside VS Code's Explorer
- * sidebar (instead of the DotPilot activity bar container) and the built-in Files view is
- * hidden. Everything DotPilot changes is recorded so turning `dotpilot.defaultExplorer`
+ * sidebar (instead of the CodeStudio activity bar container) and the built-in Files view is
+ * hidden. Everything CodeStudio changes is recorded so turning `codestudio.defaultExplorer`
  * off restores VS Code's default layout.
  */
 export class DefaultExplorerController implements vscode.Disposable {
@@ -25,16 +25,16 @@ export class DefaultExplorerController implements vscode.Disposable {
   ) {
     this.disposables.push(
       vscode.workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration(`dotpilot.${SETTING}`)) void this.sync(true);
+        if (e.affectsConfiguration(`codestudio.${SETTING}`)) void this.sync(true);
       }),
     );
   }
 
   get enabled(): boolean {
-    return vscode.workspace.getConfiguration('dotpilot').get<boolean>(SETTING, true);
+    return vscode.workspace.getConfiguration('codestudio').get<boolean>(SETTING, true);
   }
 
-  /** True while DotPilot has hidden the built-in Files view. */
+  /** True while CodeStudio has hidden the built-in Files view. */
   get filesViewHidden(): boolean {
     return this.globalState.get<boolean>(FILES_HIDDEN_KEY, false);
   }
@@ -46,7 +46,7 @@ export class DefaultExplorerController implements vscode.Disposable {
 
   /** Writes the setting where the user's effective value lives (workspace if set there, else user). */
   async setEnabled(value: boolean): Promise<void> {
-    const config = vscode.workspace.getConfiguration('dotpilot');
+    const config = vscode.workspace.getConfiguration('codestudio');
     const inspected = config.inspect<boolean>(SETTING);
     const target = inspected?.workspaceValue !== undefined ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
     await config.update(SETTING, value, target);
@@ -90,7 +90,7 @@ export class DefaultExplorerController implements vscode.Disposable {
     void this.globalState.update(NOTIFIED_KEY, true);
     void vscode.window
       .showInformationMessage(
-        'DotPilot: Solution Explorer is now your default explorer. You can switch back at any time in Settings → DotPilot → Default Explorer.',
+        'CodeStudio: Solution Explorer is now your default explorer. You can switch back at any time in Settings → CodeStudio → Default Explorer.',
         'Keep',
         'Restore VS Code Explorer',
       )

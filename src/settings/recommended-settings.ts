@@ -1,4 +1,4 @@
-// Pure definition of DotPilot's recommended settings and the change-planning logic.
+// Pure definition of CodeStudio's recommended settings and the change-planning logic.
 
 export interface RecommendedSetting {
   readonly key: string;
@@ -13,7 +13,7 @@ export const RECOMMENDED_SETTINGS: readonly RecommendedSetting[] = [
   { key: 'editor.insertSpaces', value: true, language: 'csharp', reason: 'Indent C# with spaces' },
   { key: 'editor.formatOnSave', value: true, language: 'csharp', reason: 'Format C# files on save' },
   { key: 'files.trimTrailingWhitespace', value: true, language: 'csharp', reason: 'Trim trailing whitespace in C#' },
-  { key: 'editor.defaultFormatter', value: 'dotpilot.dotpilot', language: 'csharp', reason: 'Use the DotPilot formatter (dotnet format or CSharpier) for C#' },
+  { key: 'editor.defaultFormatter', value: 'codestudio.codestudio', language: 'csharp', reason: 'Use the CodeStudio formatter (dotnet format or CSharpier) for C#' },
   { key: 'editor.bracketPairColorization.enabled', value: true, reason: 'Bracket-pair colorization' },
   { key: 'editor.guides.bracketPairs', value: 'active', reason: 'Bracket-pair guide for the active block' },
   { key: 'editor.guides.highlightActiveIndentation', value: true, reason: 'Highlight the active indentation guide' },
@@ -27,7 +27,7 @@ export const RECOMMENDED_SETTINGS: readonly RecommendedSetting[] = [
   { key: 'problems.showCurrentInStatus', value: true, reason: 'Show the diagnostic at the cursor in the status bar' },
   { key: 'terminal.integrated.scrollback', value: 10000, reason: 'Keep long build output in the terminal' },
   { key: 'terminal.integrated.defaultLocation', value: 'view', reason: 'Open terminals in the bottom panel' },
-  { key: 'workbench.colorTheme', value: 'DotPilot Dark', reason: 'Use the DotPilot Dark theme' },
+  { key: 'workbench.colorTheme', value: 'CodeStudio Dark', reason: 'Use the CodeStudio Dark theme' },
 ];
 
 export type SettingStatus = 'unset' | 'same' | 'different';

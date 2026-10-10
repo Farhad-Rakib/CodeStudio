@@ -6,31 +6,31 @@ import { CommandContext, registerCommand, requireSolution, UserFacingError } fro
 
 function requireEnabled(): void {
   if (!standardsEnabled()) {
-    throw new UserFacingError('Coding standards are off. Enable "DotPilot › Coding Standards: Enabled" in Settings first.');
+    throw new UserFacingError('Coding standards are off. Enable "CodeStudio › Coding Standards: Enabled" in Settings first.');
   }
 }
 
 export function registerStandardsCommands(ctx: CommandContext, standards: StandardsController): void {
-  registerCommand(ctx, 'dotpilot.configureCodingStandards', 'Configure Coding Standards', () =>
-    vscode.commands.executeCommand('workbench.action.openSettings', 'dotpilot.codingStandards'));
+  registerCommand(ctx, 'codestudio.configureCodingStandards', 'Configure Coding Standards', () =>
+    vscode.commands.executeCommand('workbench.action.openSettings', 'codestudio.codingStandards'));
 
-  registerCommand(ctx, 'dotpilot.renameToStandard', 'Rename to Coding Standard',
+  registerCommand(ctx, 'codestudio.renameToStandard', 'Rename to Coding Standard',
     (uri: vscode.Uri, offset: number, oldName: string, newName: string, range?: { start: number; end: number }) =>
       standards.renameToStandard(uri, offset, oldName, newName, range));
 
-  registerCommand(ctx, 'dotpilot.checkCodingStandards', 'Check Coding Standards', async () => {
+  registerCommand(ctx, 'codestudio.checkCodingStandards', 'Check Coding Standards', async () => {
     requireEnabled();
     const { model } = requireSolution(ctx);
     validateSolutionPath(model.path);
     await standards.syncEditorConfig();
     const args = ['format', 'style', model.path, '--verify-no-changes', '--severity', formatSeverity(currentStandards())];
     const code = await ctx.runner.runTask(`Check Coding Standards: ${model.name}`, args, cwdFor(model.path), model.path);
-    if (code === 0) void vscode.window.showInformationMessage('DotPilot: No coding standard violations found.');
-    else void vscode.window.showWarningMessage('DotPilot: Coding standard violations found. See the Problems panel.', 'Fix Automatically')
-      .then(choice => { if (choice) void vscode.commands.executeCommand('dotpilot.fixCodingStandards'); });
+    if (code === 0) void vscode.window.showInformationMessage('CodeStudio: No coding standard violations found.');
+    else void vscode.window.showWarningMessage('CodeStudio: Coding standard violations found. See the Problems panel.', 'Fix Automatically')
+      .then(choice => { if (choice) void vscode.commands.executeCommand('codestudio.fixCodingStandards'); });
   });
 
-  registerCommand(ctx, 'dotpilot.fixCodingStandards', 'Fix Coding Standards', async () => {
+  registerCommand(ctx, 'codestudio.fixCodingStandards', 'Fix Coding Standards', async () => {
     requireEnabled();
     const { model } = requireSolution(ctx);
     validateSolutionPath(model.path);
@@ -47,7 +47,7 @@ export function registerStandardsCommands(ctx: CommandContext, standards: Standa
     await standards.syncEditorConfig();
     const args = ['format', 'style', model.path, '--severity', formatSeverity(currentStandards())];
     const code = await ctx.runner.runTask(`Fix Coding Standards: ${model.name}`, args, cwdFor(model.path), model.path);
-    if (code === 0) void vscode.window.showInformationMessage('DotPilot: Code-style fixes applied. Remaining naming violations can be fixed with the lightbulb quick fix.');
-    else void vscode.window.showErrorMessage(`DotPilot: dotnet format exited with code ${code}. See the terminal output.`);
+    if (code === 0) void vscode.window.showInformationMessage('CodeStudio: Code-style fixes applied. Remaining naming violations can be fixed with the lightbulb quick fix.');
+    else void vscode.window.showErrorMessage(`CodeStudio: dotnet format exited with code ${code}. See the terminal output.`);
   });
 }

@@ -8,7 +8,7 @@ export interface SdkInfo {
 
 export class SdkNotFoundError extends Error {
   constructor(readonly dotnetPath: string, cause: string) {
-    super(`The .NET SDK was not found ('${dotnetPath}': ${cause}). Install it from https://dot.net or set "dotpilot.dotnetPath".`);
+    super(`The .NET SDK was not found ('${dotnetPath}': ${cause}). Install it from https://dot.net or set "codestudio.dotnetPath".`);
     this.name = 'SdkNotFoundError';
   }
 }

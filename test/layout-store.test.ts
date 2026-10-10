@@ -96,13 +96,21 @@ describe('JsonLayoutStore', () => {
   let solution: string;
 
   beforeEach(async () => {
-    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dotpilot-layout-'));
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codestudio-layout-'));
     solution = path.join(dir, 'App.sln');
     await fs.writeFile(solution, 'Microsoft Visual Studio Solution File, Format Version 12.00\n');
   });
 
-  it('stores layout in .dotpilot/solution-layout.json beside the solution', () => {
-    assert.equal(layoutPathFor(solution), path.join(dir, '.dotpilot', 'solution-layout.json'));
+  it('stores layout in .vscode/.codeStudio-settings beside the solution', () => {
+    assert.equal(layoutPathFor(solution), path.join(dir, '.vscode', '.codeStudio-settings'));
+  });
+
+  it('does not touch other files in .vscode', async () => {
+    await fs.mkdir(path.join(dir, '.vscode'), { recursive: true });
+    await fs.writeFile(path.join(dir, '.vscode', 'settings.json'), '{ "editor.tabSize": 2 }');
+    await new JsonLayoutStore(solution).save(createFolder(EMPTY_LAYOUT, 'A', undefined, 'a').layout);
+    assert.equal(await fs.readFile(path.join(dir, '.vscode', 'settings.json'), 'utf8'), '{ "editor.tabSize": 2 }');
+    assert.deepEqual((await fs.readdir(path.join(dir, '.vscode'))).sort(), ['.codeStudio-settings', 'settings.json']);
   });
 
   it('returns an empty layout when no file exists', async () => {
@@ -120,7 +128,7 @@ describe('JsonLayoutStore', () => {
     const raw = JSON.parse(await fs.readFile(layoutPathFor(solution), 'utf8'));
     assert.equal(raw.version, 1);
     // No temp files are left behind.
-    assert.deepEqual(await fs.readdir(path.join(dir, '.dotpilot')), ['solution-layout.json']);
+    assert.deepEqual(await fs.readdir(path.join(dir, '.vscode')), ['.codeStudio-settings']);
   });
 
   it('never touches the solution file or project directories', async () => {
@@ -128,7 +136,7 @@ describe('JsonLayoutStore', () => {
     const l = assignProject(createFolder(EMPTY_LAYOUT, 'A', undefined, 'a').layout, 'P/P.csproj', 'a');
     await new JsonLayoutStore(solution).save(l);
     assert.equal(await fs.readFile(solution, 'utf8'), before);
-    assert.deepEqual((await fs.readdir(dir)).sort(), ['.dotpilot', 'App.sln']);
+    assert.deepEqual((await fs.readdir(dir)).sort(), ['.vscode', 'App.sln']);
   });
 
   it('reports malformed files with actionable errors', async () => {

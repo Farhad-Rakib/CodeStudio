@@ -7,10 +7,10 @@ import { findIdentifierOccurrences, lintCSharpNaming, NamingViolation } from './
 import { generateSection, hasSection, isOnlyRootLine, removeSection, upsertSection } from './editorconfig';
 import { CodingStandards, readStandards } from './standards-config';
 
-const SECTION = 'dotpilot.codingStandards';
+const SECTION = 'codestudio.codingStandards';
 const DIAGNOSTIC_CODE = 'DP1006';
-const CREATED_KEY = 'dotpilot.editorconfigCreatedByDotPilot';
-const NOTIFIED_KEY = 'dotpilot.editorconfigNotified';
+const CREATED_KEY = 'codestudio.editorconfigCreatedByCodeStudio';
+const NOTIFIED_KEY = 'codestudio.editorconfigNotified';
 const MAX_LINT_SIZE = 1024 * 1024;
 
 export function standardsConfig(): vscode.WorkspaceConfiguration {
@@ -43,12 +43,12 @@ function shouldLint(doc: vscode.TextDocument): boolean {
 }
 
 /**
- * Enforces DotPilot coding standards when `dotpilot.codingStandards.enabled` is on:
+ * Enforces CodeStudio coding standards when `codestudio.codingStandards.enabled` is on:
  * live naming diagnostics with rename quick fixes, and a managed .editorconfig section
  * beside the solution so Roslyn, `dotnet format` and the build apply the same rules.
  */
 export class StandardsController implements vscode.Disposable, vscode.CodeActionProvider {
-  private readonly diagnostics = vscode.languages.createDiagnosticCollection('dotpilot-standards');
+  private readonly diagnostics = vscode.languages.createDiagnosticCollection('codestudio-standards');
   private readonly violations = new WeakMap<vscode.Diagnostic, NamingViolation>();
   private readonly disposables: vscode.Disposable[] = [this.diagnostics];
   private readonly timers = new Map<string, NodeJS.Timeout>();
@@ -112,7 +112,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
     this.diagnostics.set(doc.uri, found.map(v => {
       const range = new vscode.Range(doc.positionAt(v.offset), doc.positionAt(v.offset + v.length));
       const d = new vscode.Diagnostic(range, v.message, severity);
-      d.source = 'DotPilot';
+      d.source = 'CodeStudio';
       d.code = DIAGNOSTIC_CODE;
       this.violations.set(d, v);
       return d;
@@ -129,7 +129,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
       action.diagnostics = [d];
       action.isPreferred = true;
       action.command = {
-        command: 'dotpilot.renameToStandard',
+        command: 'codestudio.renameToStandard',
         title: action.title,
         arguments: [doc.uri, v.offset, v.name, v.suggestion, v.renameRange],
       };
@@ -156,7 +156,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
     }
     if (!renameRange) {
       void vscode.window.showWarningMessage(
-        `DotPilot: Renaming '${oldName}' safely needs a C# language extension (it may be used in other files). Install one, then use F2 (Rename Symbol).`,
+        `CodeStudio: Renaming '${oldName}' safely needs a C# language extension (it may be used in other files). Install one, then use F2 (Rename Symbol).`,
       );
       return false;
     }
@@ -178,7 +178,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
   syncEditorConfig(): Promise<void> {
     this.syncChain = this.syncChain.then(() => this.doSync()).catch(err => {
       this.logger.error('Updating .editorconfig failed', err);
-      void vscode.window.showErrorMessage(`DotPilot: Could not update .editorconfig. ${(err as Error).message}`);
+      void vscode.window.showErrorMessage(`CodeStudio: Could not update .editorconfig. ${(err as Error).message}`);
     });
     return this.syncChain;
   }
@@ -200,7 +200,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
       if (next === existing) return;
       await fs.writeFile(file, next, 'utf8');
       if (existing === undefined) await this.workspaceState.update(CREATED_KEY, file);
-      this.logger.info(`Wrote DotPilot coding standards to ${file}.`);
+      this.logger.info(`Wrote CodeStudio coding standards to ${file}.`);
       this.notifyWritten(file);
     } else if (existing !== undefined && hasSection(existing)) {
       const rest = removeSection(existing);
@@ -208,10 +208,10 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
       if (rest === '' || (createdByUs && isOnlyRootLine(rest))) {
         await fs.unlink(file);
         await this.workspaceState.update(CREATED_KEY, undefined);
-        this.logger.info(`Removed ${file} (it only contained DotPilot coding standards).`);
+        this.logger.info(`Removed ${file} (it only contained CodeStudio coding standards).`);
       } else {
         await fs.writeFile(file, rest, 'utf8');
-        this.logger.info(`Removed the DotPilot coding standards section from ${file}.`);
+        this.logger.info(`Removed the CodeStudio coding standards section from ${file}.`);
       }
     }
   }
@@ -221,7 +221,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
     void this.workspaceState.update(NOTIFIED_KEY, true);
     void vscode.window
       .showInformationMessage(
-        `DotPilot: Coding standards were written to ${vscode.workspace.asRelativePath(file)} so the C# language service, dotnet format and builds enforce them too.`,
+        `CodeStudio: Coding standards were written to ${vscode.workspace.asRelativePath(file)} so the C# language service, dotnet format and builds enforce them too.`,
         'Open .editorconfig',
       )
       .then(choice => {

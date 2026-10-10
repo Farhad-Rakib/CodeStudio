@@ -4,4 +4,5 @@ out/
 *.vsix
 bin/
 obj/
-.dotpilot/
+.codestudio/
+.vscode/.codeStudio-settings

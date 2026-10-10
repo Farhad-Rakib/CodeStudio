@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 
 /**
- * DotPilot's virtual solution layout. Virtual folders only exist in this metadata:
+ * CodeStudio's virtual solution layout. Virtual folders only exist in this metadata:
  * they never move files on disk and never modify the solution file.
  */
 export interface VirtualFolder {
@@ -18,6 +18,8 @@ export interface SolutionLayout {
   readonly folders: readonly VirtualFolder[];
   /** Project key (solution-relative path) -> virtual folder id. */
   readonly assignments: Readonly<Record<string, string>>;
+  /** Project key of the startup project (Run / Debug target), if one is set. */
+  readonly startupProject?: string;
 }
 
 export const EMPTY_LAYOUT: SolutionLayout = Object.freeze({ version: 1, folders: [], assignments: {} });
@@ -40,8 +42,9 @@ export interface LayoutStore {
   save(layout: SolutionLayout): Promise<void>;
 }
 
+/** `.vscode/.codeStudio-settings` in the solution's folder (JSON). */
 export function layoutPathFor(solutionPath: string): string {
-  return path.join(path.dirname(solutionPath), '.dotpilot', 'solution-layout.json');
+  return path.join(path.dirname(solutionPath), '.vscode', '.codeStudio-settings');
 }
 
 export class JsonLayoutStore implements LayoutStore {
@@ -52,20 +55,8 @@ export class JsonLayoutStore implements LayoutStore {
   }
 
   async load(): Promise<SolutionLayout> {
-    let text: string;
-    try {
-      text = await fs.readFile(this.location, 'utf8');
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return EMPTY_LAYOUT;
-      throw new LayoutError(`Cannot read ${this.location}: ${(err as Error).message}`);
-    }
-    let data: unknown;
-    try {
-      data = JSON.parse(text);
-    } catch (err) {
-      throw new LayoutError(`${this.location} is not valid JSON: ${(err as Error).message}`);
-    }
-    return validateLayout(data, this.location);
+    const text = await readIfExists(this.location);
+    return text === undefined ? EMPTY_LAYOUT : parseLayout(text, this.location);
   }
 
   async save(layout: SolutionLayout): Promise<void> {
@@ -76,6 +67,25 @@ export class JsonLayoutStore implements LayoutStore {
     await fs.writeFile(tmp, JSON.stringify(normalized, null, 2) + '\n', 'utf8');
     await fs.rename(tmp, this.location);
   }
+}
+
+async function readIfExists(file: string): Promise<string | undefined> {
+  try {
+    return await fs.readFile(file, 'utf8');
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw new LayoutError(`Cannot read ${file}: ${(err as Error).message}`);
+  }
+}
+
+function parseLayout(text: string, source: string): SolutionLayout {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    throw new LayoutError(`${source} is not valid JSON: ${(err as Error).message}`);
+  }
+  return validateLayout(data, source);
 }
 
 export function validateLayout(data: unknown, source: string): SolutionLayout {
@@ -110,7 +120,9 @@ export function validateLayout(data: unknown, source: string): SolutionLayout {
     // Drop assignments to folders that no longer exist instead of failing the whole load.
     if (ids.has(folderId)) assignments[key] = folderId;
   }
-  return { version: 1, folders, assignments };
+  const startup = obj.startupProject;
+  if (startup !== undefined && (typeof startup !== 'string' || startup === '')) return fail('"startupProject" must be a project path string');
+  return startup === undefined ? { version: 1, folders, assignments } : { version: 1, folders, assignments, startupProject: startup };
 }
 
 function hasCycle(folders: readonly VirtualFolder[]): boolean {
@@ -220,6 +232,12 @@ export function assignProject(layout: SolutionLayout, projectKey: string, folder
   if (folderId === undefined) delete assignments[projectKey];
   else assignments[projectKey] = folderId;
   return { ...layout, assignments };
+}
+
+/** Sets the startup project (by project key), or clears it when undefined. */
+export function setStartupProject(layout: SolutionLayout, projectKey: string | undefined): SolutionLayout {
+  const { startupProject: _previous, ...rest } = layout;
+  return projectKey === undefined ? rest : { ...rest, startupProject: projectKey };
 }
 
 /** Full display path of a folder, e.g. "Backend / Services". */

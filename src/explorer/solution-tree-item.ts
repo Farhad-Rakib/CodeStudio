@@ -19,11 +19,22 @@ export type ExplorerNode =
   | { readonly type: 'file'; readonly uri: vscode.Uri; readonly scope: string }
   | { readonly type: 'message'; readonly id: string; readonly text: string; readonly icon: string };
 
-const yellow = new vscode.ThemeColor('charts.yellow');
-const green = new vscode.ThemeColor('charts.green');
-const purple = new vscode.ThemeColor('charts.purple');
-const blue = new vscode.ThemeColor('charts.blue');
-const red = new vscode.ThemeColor('errorForeground');
+// Colors contributed in package.json (`contributes.colors`): themes can define them and users can
+// override them per theme via `workbench.colorCustomizations`.
+const color = (id: string) => new vscode.ThemeColor(`codestudio.${id}`);
+const c = {
+  solution: color('solutionIcon'),
+  solutionFolder: color('solutionFolderIcon'),
+  virtualFolder: color('virtualFolderIcon'),
+  csharp: color('csharpProjectIcon'),
+  fsharp: color('fsharpProjectIcon'),
+  vb: color('vbProjectIcon'),
+  web: color('webProjectIcon'),
+  test: color('testProjectIcon'),
+  package: color('packageIcon'),
+  dependency: color('dependencyIcon'),
+  error: color('errorIcon'),
+};
 
 /** Stable, unique id for every node (suffix distinguishes filtered views so they auto-expand). */
 export function explorerNodeId(node: ExplorerNode, suffix = ''): string {
@@ -42,21 +53,22 @@ export function explorerNodeId(node: ExplorerNode, suffix = ''): string {
 }
 
 export function projectIcon(project: SolutionProject, info: ProjectInfo | undefined): vscode.ThemeIcon {
-  if (info?.isTestProject) return new vscode.ThemeIcon('beaker', purple);
-  if (info?.sdk?.toLowerCase().includes('web')) return new vscode.ThemeIcon('globe', blue);
+  if (info?.isTestProject) return new vscode.ThemeIcon('beaker', c.test);
+  if (info?.sdk?.toLowerCase().includes('web')) return new vscode.ThemeIcon('globe', c.web);
   switch (project.kind) {
-    case 'csharp': return new vscode.ThemeIcon('symbol-class', green);
-    case 'fsharp': return new vscode.ThemeIcon('symbol-function', blue);
-    case 'vb': return new vscode.ThemeIcon('symbol-module', blue);
+    case 'csharp': return new vscode.ThemeIcon('symbol-class', c.csharp);
+    case 'fsharp': return new vscode.ThemeIcon('symbol-function', c.fsharp);
+    case 'vb': return new vscode.ThemeIcon('symbol-module', c.vb);
     default: return new vscode.ThemeIcon('project');
   }
 }
 
-export function projectContextValue(info: ProjectInfo | undefined, assigned: boolean): string {
-  return `project${info?.isTestProject ? '.test' : ''}${assigned ? '.assigned' : ''}`;
+/** e.g. "project.test.startup.assigned"; menus match on these segments (order matters for the regexes). */
+export function projectContextValue(info: ProjectInfo | undefined, assigned: boolean, startup = false): string {
+  return `project${info?.isTestProject ? '.test' : ''}${startup ? '.startup' : ''}${assigned ? '.assigned' : ''}`;
 }
 
-export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?: ProjectInfo, infoError?: string): vscode.TreeItem {
+export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?: ProjectInfo, infoError?: string, startupKey?: string): vscode.TreeItem {
   const suffix = filterActive ? '#filtered' : '';
   const expandedWhenFiltered = filterActive ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed;
   let item: vscode.TreeItem;
@@ -66,7 +78,7 @@ export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?:
       const m = node.model;
       item = new vscode.TreeItem(`Solution '${m.name}'`, vscode.TreeItemCollapsibleState.Expanded);
       item.description = `(${m.projects.length} of ${m.projects.length} project${m.projects.length === 1 ? '' : 's'})`;
-      item.iconPath = new vscode.ThemeIcon('layers', purple);
+      item.iconPath = new vscode.ThemeIcon('layers', c.solution);
       item.tooltip = m.path;
       item.resourceUri = vscode.Uri.file(m.path);
       item.contextValue = 'solution';
@@ -77,30 +89,35 @@ export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?:
       switch (s.kind) {
         case 'virtualFolder':
           item = new vscode.TreeItem(s.label, s.children.length ? expandedWhenFiltered : vscode.TreeItemCollapsibleState.None);
-          item.iconPath = new vscode.ThemeIcon('folder', yellow);
+          item.iconPath = new vscode.ThemeIcon('folder', c.virtualFolder);
           item.description = describeFolder(s.children);
-          item.tooltip = `Virtual folder "${s.label}" (DotPilot layout only, no files are moved)`;
+          item.tooltip = `Virtual folder "${s.label}" (CodeStudio layout only, no files are moved)`;
           item.contextValue = 'virtualFolder';
           break;
         case 'solutionFolder':
           item = new vscode.TreeItem(s.label, s.children.length ? expandedWhenFiltered : vscode.TreeItemCollapsibleState.None);
-          item.iconPath = new vscode.ThemeIcon('folder-library', yellow);
+          item.iconPath = new vscode.ThemeIcon('folder-library', c.solutionFolder);
           item.description = describeFolder(s.children);
           item.tooltip = `Solution folder "${s.label}" (defined in the solution file)`;
           item.contextValue = 'solutionFolder';
           break;
         case 'project': {
           const p = s.project;
-          item = new vscode.TreeItem(p.name, vscode.TreeItemCollapsibleState.Collapsed);
-          item.iconPath = infoError ? new vscode.ThemeIcon('warning', red) : projectIcon(p, info);
-          item.description = infoError ? 'unavailable' : info?.targetFrameworks.join('; ');
+          const isStartup = startupKey === p.key;
+          // Highlighted (bold) label marks the startup project, as in Visual Studio.
+          item = new vscode.TreeItem(isStartup ? { label: p.name, highlights: [[0, p.name.length]] } : p.name, vscode.TreeItemCollapsibleState.Collapsed);
+          item.iconPath = infoError ? new vscode.ThemeIcon('warning', c.error) : projectIcon(p, info);
+          const tfm = infoError ? 'unavailable' : info?.targetFrameworks.join('; ');
+          item.description = isStartup ? ['startup', tfm].filter(Boolean).join(' · ') : tfm;
           const tip = new vscode.MarkdownString();
           tip.appendMarkdown(`**${p.name}**\n\n`).appendText(p.absolutePath);
           if (info?.sdk) tip.appendMarkdown(`\n\nSDK: \`${info.sdk}\``);
           if (infoError) tip.appendMarkdown('\n\n').appendText(infoError);
           item.tooltip = tip;
           item.resourceUri = vscode.Uri.file(p.absolutePath);
-          item.contextValue = projectContextValue(info, s.assignedFolderId !== undefined);
+          if (isStartup) tip.appendMarkdown('\n\n$(play) **Startup project**');
+          tip.supportThemeIcons = true;
+          item.contextValue = projectContextValue(info, s.assignedFolderId !== undefined, isStartup);
           break;
         }
         case 'solutionItem':
@@ -115,7 +132,7 @@ export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?:
     }
     case 'dependencies':
       item = new vscode.TreeItem('Dependencies', vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = new vscode.ThemeIcon('references');
+      item.iconPath = new vscode.ThemeIcon('references', c.dependency);
       item.contextValue = 'dependencies';
       break;
     case 'dependencyGroup': {
@@ -126,26 +143,26 @@ export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?:
       };
       const [label, icon] = labels[node.group];
       item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = new vscode.ThemeIcon(icon);
+      item.iconPath = new vscode.ThemeIcon(icon, node.group === 'packages' ? c.package : c.dependency);
       item.contextValue = `dependencyGroup.${node.group}`;
       break;
     }
     case 'package':
       item = new vscode.TreeItem(node.pkg.id, vscode.TreeItemCollapsibleState.None);
       item.description = node.pkg.version ? `(${node.pkg.version})` : '(central)';
-      item.iconPath = new vscode.ThemeIcon('package', blue);
+      item.iconPath = new vscode.ThemeIcon('package', c.package);
       item.contextValue = 'package';
       break;
     case 'projectReference':
       item = new vscode.TreeItem(node.ref.name, vscode.TreeItemCollapsibleState.None);
-      item.iconPath = new vscode.ThemeIcon('project');
+      item.iconPath = new vscode.ThemeIcon('project', c.dependency);
       item.tooltip = node.ref.absolutePath;
       item.command = { command: 'vscode.open', title: 'Open', arguments: [vscode.Uri.file(node.ref.absolutePath)] };
       item.contextValue = 'projectReference';
       break;
     case 'framework':
       item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.None);
-      item.iconPath = new vscode.ThemeIcon('library');
+      item.iconPath = new vscode.ThemeIcon('library', c.dependency);
       item.contextValue = 'framework';
       break;
     case 'physicalFolder':

@@ -46,7 +46,7 @@ async function findProjectFile(dir: string, name: string): Promise<string> {
 }
 
 export function registerTemplateCommands(ctx: CommandContext): void {
-  registerCommand(ctx, 'dotpilot.newProject', 'New Project', async (node?: unknown) => {
+  registerCommand(ctx, 'codestudio.newProject', 'New Project', async (node?: unknown) => {
     const { model } = requireSolution(ctx);
     const n = node as ExplorerNode | undefined;
     const targetFolderId = n?.type === 'structure' && n.node.kind === 'virtualFolder' ? n.node.folder.id : undefined;
@@ -115,10 +115,10 @@ export function registerTemplateCommands(ctx: CommandContext): void {
       const added = ctx.manager.solution?.model.projects.find(p => p.key === key || path.resolve(p.absolutePath) === path.resolve(projectFile));
       if (added) await ctx.manager.updateLayout(l => assignProject(l, added.key, targetFolderId));
     }
-    void vscode.window.showInformationMessage(`DotPilot: Created ${name} and added it to ${model.name}.`);
+    void vscode.window.showInformationMessage(`CodeStudio: Created ${name} and added it to ${model.name}.`);
   });
 
-  registerCommand(ctx, 'dotpilot.newItem', 'New Item', async (node?: unknown) => {
+  registerCommand(ctx, 'codestudio.newItem', 'New Item', async (node?: unknown) => {
     const n = node as ExplorerNode | undefined;
     let project;
     let targetDir: string;

@@ -28,12 +28,12 @@ async function pickVirtualFolder(ctx: CommandContext, placeHolder: string, inclu
 }
 
 export function registerFolderCommands(ctx: CommandContext): void {
-  registerCommand(ctx, 'dotpilot.addVirtualFolder', 'Add Virtual Folder', async (node?: unknown) => {
+  registerCommand(ctx, 'codestudio.addVirtualFolder', 'Add Virtual Folder', async (node?: unknown) => {
     const { layout } = requireSolution(ctx);
     const parent = virtualFolderOf(node);
     const name = await vscode.window.showInputBox({
       title: parent ? `New virtual folder in "${parent.name}"` : 'New virtual folder',
-      prompt: 'Virtual folders organize projects in DotPilot only; nothing moves on disk.',
+      prompt: 'Virtual folders organize projects in CodeStudio only; nothing moves on disk.',
       value: 'New Folder',
       validateInput: v => {
         const err = validateFolderName(v);
@@ -46,7 +46,7 @@ export function registerFolderCommands(ctx: CommandContext): void {
     await ctx.manager.updateLayout(l => createFolder(l, name, parent?.id).layout);
   });
 
-  registerCommand(ctx, 'dotpilot.renameVirtualFolder', 'Rename Virtual Folder', async (node?: unknown) => {
+  registerCommand(ctx, 'codestudio.renameVirtualFolder', 'Rename Virtual Folder', async (node?: unknown) => {
     requireSolution(ctx);
     let folder = virtualFolderOf(node);
     if (!folder) {
@@ -60,7 +60,7 @@ export function registerFolderCommands(ctx: CommandContext): void {
     await ctx.manager.updateLayout(l => renameFolder(l, target.id, name));
   });
 
-  registerCommand(ctx, 'dotpilot.deleteVirtualFolder', 'Delete Virtual Folder', async (node?: unknown) => {
+  registerCommand(ctx, 'codestudio.deleteVirtualFolder', 'Delete Virtual Folder', async (node?: unknown) => {
     const { layout } = requireSolution(ctx);
     let folder = virtualFolderOf(node);
     if (!folder) {
@@ -81,7 +81,7 @@ export function registerFolderCommands(ctx: CommandContext): void {
     await ctx.manager.updateLayout(l => deleteFolder(l, target.id));
   });
 
-  registerCommand(ctx, 'dotpilot.moveProjectHere', 'Move Project Here', async (node?: unknown) => {
+  registerCommand(ctx, 'codestudio.moveProjectHere', 'Move Project Here', async (node?: unknown) => {
     const { model, layout } = requireSolution(ctx);
     const folder = virtualFolderOf(node);
     if (!folder) throw new UserFacingError('Run "Move Project Here" from a virtual folder in the Solution Explorer.');
@@ -99,7 +99,7 @@ export function registerFolderCommands(ctx: CommandContext): void {
     await ctx.manager.updateLayout(l => picks.reduce((acc, p) => assignProject(acc, p.key, folder.id), l));
   });
 
-  registerCommand(ctx, 'dotpilot.moveProjectToFolder', 'Move Project to Virtual Folder', async (node?: unknown) => {
+  registerCommand(ctx, 'codestudio.moveProjectToFolder', 'Move Project to Virtual Folder', async (node?: unknown) => {
     const project = await resolveProject(ctx, node, 'Select a project to move');
     if (!project) return;
     const pick = await pickVirtualFolder(ctx, `Move ${project.name} to...`, true);
@@ -107,7 +107,7 @@ export function registerFolderCommands(ctx: CommandContext): void {
     await ctx.manager.updateLayout(l => assignProject(l, project.key, pick.id));
   });
 
-  registerCommand(ctx, 'dotpilot.removeFromVirtualFolder', 'Remove from Virtual Folder', async (node?: unknown) => {
+  registerCommand(ctx, 'codestudio.removeFromVirtualFolder', 'Remove from Virtual Folder', async (node?: unknown) => {
     const project = await resolveProject(ctx, node, 'Select a project');
     if (!project) return;
     await ctx.manager.updateLayout(l => assignProject(l, project.key, undefined));

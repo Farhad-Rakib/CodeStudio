@@ -64,7 +64,7 @@ export class NuGetPanel implements vscode.Disposable {
   }
 
   private constructor(private readonly deps: NuGetDeps, private project: SolutionProject) {
-    this.panel = vscode.window.createWebviewPanel('dotpilot.nuget', this.title(), vscode.ViewColumn.Active, {
+    this.panel = vscode.window.createWebviewPanel('codestudio.nuget', this.title(), vscode.ViewColumn.Active, {
       enableScripts: true,
       retainContextWhenHidden: true,
       localResourceRoots: [],

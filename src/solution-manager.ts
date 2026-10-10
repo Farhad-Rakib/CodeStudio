@@ -6,7 +6,7 @@ import { ProjectInfo, readProject } from './solution/project-reader';
 import { SolutionModel } from './solution/solution-model';
 import { readSolution } from './solution/solution-reader';
 
-const LAST_SOLUTION_KEY = 'dotpilot.lastSolution';
+const LAST_SOLUTION_KEY = 'codestudio.lastSolution';
 
 export interface LoadedSolution {
   readonly model: SolutionModel;
@@ -59,7 +59,7 @@ export class SolutionManager implements vscode.Disposable {
     this.projectCache.clear();
     await this.state.update(LAST_SOLUTION_KEY, resolved);
     this.watch(resolved, store.location);
-    await vscode.commands.executeCommand('setContext', 'dotpilot.solutionLoaded', true);
+    await vscode.commands.executeCommand('setContext', 'codestudio.solutionLoaded', true);
     this.changed.fire();
     return this.current;
   }

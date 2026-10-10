@@ -1,18 +1,23 @@
 {
-  "name": "dotpilot",
-  "displayName": "DotPilot - vscode dev assistant for .NET", 
+  "name": "codestudio",
+  "displayName": "CodeStudio - vscode dev assistant for .NET",
   "description": "A Visual Studio-inspired Solution Explorer, virtual solution folders, .NET CLI commands and themes for VS Code.",
   "version": "0.1.0",
-  "publisher": "dotpilot",
+  "publisher": "codestudio",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#3B2585",
+    "theme": "dark"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Farhad-Rakib/dotPilot.git"
+    "url": "https://github.com/Farhad-Rakib/codeStudio.git"
   },
   "bugs": {
-    "url": "https://github.com/Farhad-Rakib/dotPilot/issues"
+    "url": "https://github.com/Farhad-Rakib/codeStudio/issues"
   },
-  "homepage": "https://github.com/Farhad-Rakib/dotPilot#readme",
+  "homepage": "https://github.com/Farhad-Rakib/codeStudio#readme",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -32,510 +37,581 @@
   "activationEvents": [
     "workspaceContains:**/*.sln",
     "workspaceContains:**/*.slnx",
-    "onView:dotpilot.solutionExplorer",
+    "onView:codestudio.solutionExplorer",
     "onStartupFinished"
   ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "dotpilot",
-          "title": "DotPilot",
-          "icon": "resources/dotpilot.svg"
+          "id": "codestudio",
+          "title": "CodeStudio",
+          "icon": "resources/codestudio.svg"
         }
       ]
     },
     "views": {
-      "dotpilot": [
+      "codestudio": [
         {
-          "id": "dotpilot.solutionExplorer",
+          "id": "codestudio.solutionExplorer",
           "name": "Solution Explorer",
-          "icon": "resources/dotpilot.svg",
-          "when": "!config.dotpilot.defaultExplorer"
+          "icon": "resources/codestudio.svg",
+          "when": "!config.codestudio.defaultExplorer"
         }
       ],
       "explorer": [
         {
-          "id": "dotpilot.solutionExplorer.explorer",
+          "id": "codestudio.solutionExplorer.explorer",
           "name": "Solution Explorer",
-          "icon": "resources/dotpilot.svg",
-          "when": "config.dotpilot.defaultExplorer && dotpilot.workspaceHasSolution"
+          "icon": "resources/codestudio.svg",
+          "when": "config.codestudio.defaultExplorer && codestudio.workspaceHasSolution"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "dotpilot.solutionExplorer",
-        "contents": "No solution is open.\n[Open Solution](command:dotpilot.openSolution)\nDotPilot looks for .sln and .slnx files in the current workspace.",
-        "when": "!dotpilot.solutionLoaded"
+        "view": "codestudio.solutionExplorer",
+        "contents": "No solution is open.\n[Open Solution](command:codestudio.openSolution)\nCodeStudio looks for .sln and .slnx files in the current workspace.",
+        "when": "!codestudio.solutionLoaded"
       },
       {
-        "view": "dotpilot.solutionExplorer.explorer",
-        "contents": "No solution is open.\n[Open Solution](command:dotpilot.openSolution)\nDotPilot looks for .sln and .slnx files in the current workspace.",
-        "when": "!dotpilot.solutionLoaded"
+        "view": "codestudio.solutionExplorer.explorer",
+        "contents": "No solution is open.\n[Open Solution](command:codestudio.openSolution)\nCodeStudio looks for .sln and .slnx files in the current workspace.",
+        "when": "!codestudio.solutionLoaded"
       }
     ],
     "commands": [
       {
-        "command": "dotpilot.openSolution",
+        "command": "codestudio.openSolution",
         "title": "Open Solution",
-        "category": "DotPilot",
+        "category": "CodeStudio",
         "icon": "$(folder-opened)"
       },
       {
-        "command": "dotpilot.refresh",
+        "command": "codestudio.refresh",
         "title": "Refresh",
-        "category": "DotPilot",
+        "category": "CodeStudio",
         "icon": "$(refresh)"
       },
       {
-        "command": "dotpilot.filter",
+        "command": "codestudio.filter",
         "title": "Search Solution Explorer",
-        "category": "DotPilot",
+        "category": "CodeStudio",
         "icon": "$(filter)"
       },
       {
-        "command": "dotpilot.clearFilter",
+        "command": "codestudio.clearFilter",
         "title": "Clear Search",
-        "category": "DotPilot",
+        "category": "CodeStudio",
         "icon": "$(clear-all)"
       },
       {
-        "command": "dotpilot.buildSolution",
+        "command": "codestudio.buildSolution",
         "title": "Build Solution",
-        "category": "DotPilot",
+        "category": "CodeStudio",
         "icon": "$(tools)"
       },
       {
-        "command": "dotpilot.restoreSolution",
+        "command": "codestudio.restoreSolution",
         "title": "Restore Solution",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.cleanSolution",
+        "command": "codestudio.cleanSolution",
         "title": "Clean Solution",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.addExistingProject",
+        "command": "codestudio.addExistingProject",
         "title": "Add Existing Project...",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.addVirtualFolder",
+        "command": "codestudio.addVirtualFolder",
         "title": "Add Virtual Folder",
-        "category": "DotPilot",
+        "category": "CodeStudio",
         "icon": "$(new-folder)"
       },
       {
-        "command": "dotpilot.renameVirtualFolder",
+        "command": "codestudio.renameVirtualFolder",
         "title": "Rename",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.deleteVirtualFolder",
+        "command": "codestudio.deleteVirtualFolder",
         "title": "Delete",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.moveProjectHere",
+        "command": "codestudio.moveProjectHere",
         "title": "Move Project Here...",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.moveProjectToFolder",
+        "command": "codestudio.moveProjectToFolder",
         "title": "Move to Virtual Folder...",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.removeFromVirtualFolder",
+        "command": "codestudio.removeFromVirtualFolder",
         "title": "Remove from Virtual Folder",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.openProjectFile",
+        "command": "codestudio.openProjectFile",
         "title": "Open Project File",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.buildProject",
+        "command": "codestudio.buildProject",
         "title": "Build Project",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.addProjectReference",
+        "command": "codestudio.addProjectReference",
         "title": "Add Project Reference...",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.manageNuGetPackages",
+        "command": "codestudio.manageNuGetPackages",
         "title": "Manage NuGet Packages...",
-        "category": "DotPilot",
+        "category": "CodeStudio",
         "icon": "$(package)"
       },
       {
-        "command": "dotpilot.runTests",
+        "command": "codestudio.runTests",
         "title": "Run Tests",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.openFile",
+        "command": "codestudio.openFile",
         "title": "Open",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.revealInOS",
+        "command": "codestudio.revealInOS",
         "title": "Reveal in File Explorer",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.applyRecommendedSettings",
+        "command": "codestudio.applyRecommendedSettings",
         "title": "Apply Recommended Settings...",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.showSdkInfo",
+        "command": "codestudio.showSdkInfo",
         "title": "Show .NET SDK Info",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.showLog",
+        "command": "codestudio.showLog",
         "title": "Show Log",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.newProject",
+        "command": "codestudio.newProject",
         "title": "New Project...",
-        "category": "DotPilot",
+        "category": "CodeStudio",
         "icon": "$(new-file)"
       },
       {
-        "command": "dotpilot.newItem",
+        "command": "codestudio.newItem",
         "title": "New Item...",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.restoreDefaultExplorer",
+        "command": "codestudio.restoreDefaultExplorer",
         "title": "Restore VS Code Default Explorer",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.makeDefaultExplorer",
+        "command": "codestudio.makeDefaultExplorer",
         "title": "Make Solution Explorer the Default Explorer",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.configureCodingStandards",
+        "command": "codestudio.configureCodingStandards",
         "title": "Configure Coding Standards...",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.checkCodingStandards",
+        "command": "codestudio.checkCodingStandards",
         "title": "Check Coding Standards",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.fixCodingStandards",
+        "command": "codestudio.fixCodingStandards",
         "title": "Fix Coding Standards...",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.renameToStandard",
+        "command": "codestudio.renameToStandard",
         "title": "Rename to Coding Standard",
-        "category": "DotPilot"
+        "category": "CodeStudio"
       },
       {
-        "command": "dotpilot.installCSharpier",
+        "command": "codestudio.installCSharpier",
         "title": "Install CSharpier (C# Prettier)...",
-        "category": "DotPilot"
+        "category": "CodeStudio"
+      },
+      {
+        "command": "codestudio.setStartupProject",
+        "title": "Set as Startup Project",
+        "category": "CodeStudio"
+      },
+      {
+        "command": "codestudio.clearStartupProject",
+        "title": "Clear Startup Project",
+        "category": "CodeStudio"
+      },
+      {
+        "command": "codestudio.selectStartupProject",
+        "title": "Configure Startup Project...",
+        "category": "CodeStudio"
+      },
+      {
+        "command": "codestudio.runStartupProject",
+        "title": "Start Without Debugging",
+        "category": "CodeStudio",
+        "icon": "$(run)"
+      },
+      {
+        "command": "codestudio.debugStartupProject",
+        "title": "Start Debugging",
+        "category": "CodeStudio",
+        "icon": "$(debug-alt)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "dotpilot.openSolution",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/",
+          "command": "codestudio.openSolution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/",
           "group": "navigation@1"
         },
         {
-          "command": "dotpilot.filter",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "command": "codestudio.filter",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
           "group": "navigation@2"
         },
         {
-          "command": "dotpilot.clearFilter",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.filterActive",
+          "command": "codestudio.clearFilter",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.filterActive",
           "group": "navigation@3"
         },
         {
-          "command": "dotpilot.refresh",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/",
+          "command": "codestudio.refresh",
+          "when": "view =~ /^codestudio\\.solutionExplorer/",
           "group": "navigation@4"
         },
         {
-          "command": "dotpilot.buildSolution",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "command": "codestudio.buildSolution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
           "group": "1_build@1"
         },
         {
-          "command": "dotpilot.restoreSolution",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "command": "codestudio.restoreSolution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
           "group": "1_build@2"
         },
         {
-          "command": "dotpilot.cleanSolution",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "command": "codestudio.cleanSolution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
           "group": "1_build@3"
         },
         {
-          "command": "dotpilot.addVirtualFolder",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "command": "codestudio.addVirtualFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
           "group": "2_add@1"
         },
         {
-          "command": "dotpilot.applyRecommendedSettings",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/",
+          "command": "codestudio.applyRecommendedSettings",
+          "when": "view =~ /^codestudio\\.solutionExplorer/",
           "group": "3_misc@1"
         },
         {
-          "command": "dotpilot.showSdkInfo",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/",
+          "command": "codestudio.showSdkInfo",
+          "when": "view =~ /^codestudio\\.solutionExplorer/",
           "group": "3_misc@2"
         },
         {
-          "command": "dotpilot.newProject",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "command": "codestudio.newProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
           "group": "2_add@0"
         },
         {
-          "command": "dotpilot.restoreDefaultExplorer",
-          "when": "view == dotpilot.solutionExplorer.explorer",
+          "command": "codestudio.restoreDefaultExplorer",
+          "when": "view == codestudio.solutionExplorer.explorer",
           "group": "9_layout@1"
         },
         {
-          "command": "dotpilot.makeDefaultExplorer",
-          "when": "view == dotpilot.solutionExplorer",
+          "command": "codestudio.makeDefaultExplorer",
+          "when": "view == codestudio.solutionExplorer",
           "group": "9_layout@1"
         },
         {
-          "command": "dotpilot.checkCodingStandards",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "command": "codestudio.checkCodingStandards",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
           "group": "4_standards@1"
         },
         {
-          "command": "dotpilot.fixCodingStandards",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "command": "codestudio.fixCodingStandards",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
           "group": "4_standards@2"
         },
         {
-          "command": "dotpilot.configureCodingStandards",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "command": "codestudio.configureCodingStandards",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
           "group": "4_standards@3"
         },
         {
-          "command": "dotpilot.manageNuGetPackages",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "command": "codestudio.manageNuGetPackages",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
           "group": "2_add@5"
+        },
+        {
+          "command": "codestudio.debugStartupProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
+          "group": "navigation@0"
+        },
+        {
+          "command": "codestudio.runStartupProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded",
+          "group": "1_build@0"
         }
       ],
       "view/item/context": [
         {
-          "command": "dotpilot.openSolution",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "command": "codestudio.openSolution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution",
           "group": "1_solution@1"
         },
         {
-          "command": "dotpilot.refresh",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "command": "codestudio.refresh",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution",
           "group": "1_solution@2"
         },
         {
-          "command": "dotpilot.buildSolution",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "command": "codestudio.buildSolution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution",
           "group": "2_build@1"
         },
         {
-          "command": "dotpilot.restoreSolution",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "command": "codestudio.restoreSolution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution",
           "group": "2_build@2"
         },
         {
-          "command": "dotpilot.cleanSolution",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "command": "codestudio.cleanSolution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution",
           "group": "2_build@3"
         },
         {
-          "command": "dotpilot.addExistingProject",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "command": "codestudio.addExistingProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution",
           "group": "3_add@1"
         },
         {
-          "command": "dotpilot.addVirtualFolder",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^(solution|virtualFolder)$/",
+          "command": "codestudio.addVirtualFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(solution|virtualFolder)$/",
           "group": "3_add@2"
         },
         {
-          "command": "dotpilot.moveProjectHere",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == virtualFolder",
+          "command": "codestudio.moveProjectHere",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == virtualFolder",
           "group": "3_add@3"
         },
         {
-          "command": "dotpilot.renameVirtualFolder",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == virtualFolder",
+          "command": "codestudio.renameVirtualFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == virtualFolder",
           "group": "4_edit@1"
         },
         {
-          "command": "dotpilot.deleteVirtualFolder",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == virtualFolder",
+          "command": "codestudio.deleteVirtualFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == virtualFolder",
           "group": "4_edit@2"
         },
         {
-          "command": "dotpilot.openProjectFile",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project/",
+          "command": "codestudio.openProjectFile",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
           "group": "1_project@1"
         },
         {
-          "command": "dotpilot.buildProject",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project/",
+          "command": "codestudio.buildProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
           "group": "2_build@1"
         },
         {
-          "command": "dotpilot.runTests",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project\\.test/",
+          "command": "codestudio.runTests",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project\\.test/",
           "group": "2_build@2"
         },
         {
-          "command": "dotpilot.addProjectReference",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project/",
+          "command": "codestudio.addProjectReference",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
           "group": "3_add@1"
         },
         {
-          "command": "dotpilot.manageNuGetPackages",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project/",
+          "command": "codestudio.manageNuGetPackages",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
           "group": "3_add@2"
         },
         {
-          "command": "dotpilot.moveProjectToFolder",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project/",
+          "command": "codestudio.moveProjectToFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
           "group": "4_layout@1"
         },
         {
-          "command": "dotpilot.removeFromVirtualFolder",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project.*\\.assigned$/",
+          "command": "codestudio.removeFromVirtualFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project.*\\.assigned$/",
           "group": "4_layout@2"
         },
         {
-          "command": "dotpilot.revealInOS",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^(project|file|physicalFolder)/",
+          "command": "codestudio.revealInOS",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project|file|physicalFolder)/",
           "group": "9_reveal@1"
         },
         {
-          "command": "dotpilot.openFile",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == file",
+          "command": "codestudio.openFile",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == file",
           "group": "1_file@1"
         },
         {
-          "command": "dotpilot.newProject",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^(solution|virtualFolder)$/",
+          "command": "codestudio.newProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(solution|virtualFolder)$/",
           "group": "3_add@0"
         },
         {
-          "command": "dotpilot.newItem",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^(project|physicalFolder)/",
+          "command": "codestudio.newItem",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project|physicalFolder)/",
           "group": "3_add@0"
         },
         {
-          "command": "dotpilot.checkCodingStandards",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution && config.dotpilot.codingStandards.enabled",
+          "command": "codestudio.checkCodingStandards",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution && config.codestudio.codingStandards.enabled",
           "group": "2_build@4"
         },
         {
-          "command": "dotpilot.manageNuGetPackages",
-          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^dependencyGroup\\.packages$/",
+          "command": "codestudio.manageNuGetPackages",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^dependencyGroup\\.packages$/",
           "group": "inline"
+        },
+        {
+          "command": "codestudio.setStartupProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project(?!.*\\.startup)/",
+          "group": "0_startup@1"
+        },
+        {
+          "command": "codestudio.clearStartupProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project.*\\.startup/",
+          "group": "0_startup@1"
+        },
+        {
+          "command": "codestudio.debugStartupProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
+          "group": "0_startup@2"
+        },
+        {
+          "command": "codestudio.runStartupProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
+          "group": "0_startup@3"
+        },
+        {
+          "command": "codestudio.selectStartupProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution",
+          "group": "1_solution@3"
+        },
+        {
+          "command": "codestudio.runStartupProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project.*\\.startup/",
+          "group": "inline@1"
         }
       ],
       "commandPalette": [
         {
-          "command": "dotpilot.renameVirtualFolder",
+          "command": "codestudio.renameVirtualFolder",
           "when": "false"
         },
         {
-          "command": "dotpilot.deleteVirtualFolder",
+          "command": "codestudio.deleteVirtualFolder",
           "when": "false"
         },
         {
-          "command": "dotpilot.moveProjectHere",
+          "command": "codestudio.moveProjectHere",
           "when": "false"
         },
         {
-          "command": "dotpilot.removeFromVirtualFolder",
+          "command": "codestudio.removeFromVirtualFolder",
           "when": "false"
         },
         {
-          "command": "dotpilot.openFile",
+          "command": "codestudio.openFile",
           "when": "false"
         },
         {
-          "command": "dotpilot.revealInOS",
+          "command": "codestudio.revealInOS",
           "when": "false"
         },
         {
-          "command": "dotpilot.clearFilter",
-          "when": "dotpilot.filterActive"
+          "command": "codestudio.clearFilter",
+          "when": "codestudio.filterActive"
         },
         {
-          "command": "dotpilot.restoreDefaultExplorer",
-          "when": "config.dotpilot.defaultExplorer"
+          "command": "codestudio.restoreDefaultExplorer",
+          "when": "config.codestudio.defaultExplorer"
         },
         {
-          "command": "dotpilot.makeDefaultExplorer",
-          "when": "!config.dotpilot.defaultExplorer"
+          "command": "codestudio.makeDefaultExplorer",
+          "when": "!config.codestudio.defaultExplorer"
         },
         {
-          "command": "dotpilot.renameToStandard",
+          "command": "codestudio.renameToStandard",
           "when": "false"
+        },
+        {
+          "command": "codestudio.clearStartupProject",
+          "when": "codestudio.hasStartupProject"
         }
       ]
     },
     "themes": [
       {
-        "label": "DotPilot Dark",
+        "label": "CodeStudio Dark",
         "uiTheme": "vs-dark",
-        "path": "./themes/dotpilot-dark-color-theme.json"
+        "path": "./themes/codestudio-dark-color-theme.json"
       },
       {
-        "label": "DotPilot Light",
+        "label": "CodeStudio Light",
         "uiTheme": "vs",
-        "path": "./themes/dotpilot-light-color-theme.json"
+        "path": "./themes/codestudio-light-color-theme.json"
       }
     ],
     "configuration": {
-      "title": "DotPilot",
+      "title": "CodeStudio",
       "properties": {
-        "dotpilot.defaultExplorer": {
+        "codestudio.defaultExplorer": {
           "type": "boolean",
           "default": true,
           "order": 0,
-          "markdownDescription": "Use **Solution Explorer** as the default explorer: it appears in VS Code's Explorer sidebar and the built-in Files view is hidden in workspaces that contain a solution.\n\nUncheck to restore VS Code's default Explorer (Solution Explorer moves to the DotPilot icon in the Activity Bar). You can also run [Restore VS Code Default Explorer](command:dotpilot.restoreDefaultExplorer)."
+          "markdownDescription": "Use **Solution Explorer** as the default explorer: it appears in VS Code's Explorer sidebar and the built-in Files view is hidden in workspaces that contain a solution.\n\nUncheck to restore VS Code's default Explorer (Solution Explorer moves to the CodeStudio icon in the Activity Bar). You can also run [Restore VS Code Default Explorer](command:codestudio.restoreDefaultExplorer)."
         },
-        "dotpilot.autoOpenSingleSolution": {
+        "codestudio.autoOpenSingleSolution": {
           "type": "boolean",
           "default": true,
           "description": "Automatically open the solution when the workspace contains exactly one .sln/.slnx file."
         },
-        "dotpilot.dotnetPath": {
+        "codestudio.dotnetPath": {
           "type": "string",
           "default": "dotnet",
           "scope": "machine-overridable",
           "description": "Path to the dotnet executable. Defaults to 'dotnet' on PATH."
         },
-        "dotpilot.explorer.showPhysicalFiles": {
+        "codestudio.explorer.showPhysicalFiles": {
           "type": "boolean",
           "default": true,
           "description": "Show the files and folders of each project directory under the project node."
         },
-        "dotpilot.explorer.excludedFolders": {
+        "codestudio.explorer.excludedFolders": {
           "type": "array",
           "items": {
             "type": "string"
@@ -549,13 +625,13 @@
           ],
           "description": "Folder names hidden under project nodes."
         },
-        "dotpilot.codingStandards.enabled": {
+        "codestudio.codingStandards.enabled": {
           "type": "boolean",
           "default": false,
           "order": 10,
-          "markdownDescription": "Enforce the coding standards below. When on, DotPilot reports naming violations live in C# files (with rename quick fixes) and writes the rules to the solution's `.editorconfig` so the C# language service, `dotnet format` and builds apply them too. Turning it off removes DotPilot's `.editorconfig` section."
+          "markdownDescription": "Enforce the coding standards below. When on, CodeStudio reports naming violations live in C# files (with rename quick fixes) and writes the rules to the solution's `.editorconfig` so the C# language service, `dotnet format` and builds apply them too. Turning it off removes CodeStudio's `.editorconfig` section."
         },
-        "dotpilot.codingStandards.severity": {
+        "codestudio.codingStandards.severity": {
           "type": "string",
           "enum": [
             "suggestion",
@@ -566,19 +642,19 @@
           "order": 11,
           "description": "How violations are reported in the editor, .editorconfig and builds."
         },
-        "dotpilot.codingStandards.writeEditorConfig": {
+        "codestudio.codingStandards.writeEditorConfig": {
           "type": "boolean",
           "default": true,
           "order": 12,
           "markdownDescription": "Write the rules to a managed section of `.editorconfig` beside the solution (content outside the section is preserved)."
         },
-        "dotpilot.codingStandards.enforceInBuild": {
+        "codestudio.codingStandards.enforceInBuild": {
           "type": "boolean",
           "default": false,
           "order": 13,
-          "markdownDescription": "Pass `-p:EnforceCodeStyleInBuild=true` to DotPilot's Build and Run Tests commands so violations appear as build warnings/errors (with severity `error`, builds fail)."
+          "markdownDescription": "Pass `-p:EnforceCodeStyleInBuild=true` to CodeStudio's Build and Run Tests commands so violations appear as build warnings/errors (with severity `error`, builds fail)."
         },
-        "dotpilot.codingStandards.naming.types": {
+        "codestudio.codingStandards.naming.types": {
           "type": "string",
           "enum": [
             "PascalCase",
@@ -593,19 +669,19 @@
           "description": "Classes, structs, records, enums and delegates.",
           "order": 20
         },
-        "dotpilot.codingStandards.naming.interfacePrefix": {
+        "codestudio.codingStandards.naming.interfacePrefix": {
           "type": "boolean",
           "default": true,
           "order": 21,
           "markdownDescription": "Interfaces start with `I` (e.g. `IOrderRepository`)."
         },
-        "dotpilot.codingStandards.naming.typeParameterPrefix": {
+        "codestudio.codingStandards.naming.typeParameterPrefix": {
           "type": "boolean",
           "default": true,
           "order": 22,
           "markdownDescription": "Generic type parameters start with `T` (e.g. `TKey`)."
         },
-        "dotpilot.codingStandards.naming.methods": {
+        "codestudio.codingStandards.naming.methods": {
           "type": "string",
           "enum": [
             "PascalCase",
@@ -620,13 +696,13 @@
           "description": "Methods and local functions.",
           "order": 23
         },
-        "dotpilot.codingStandards.naming.asyncSuffix": {
+        "codestudio.codingStandards.naming.asyncSuffix": {
           "type": "boolean",
           "default": true,
           "order": 24,
           "markdownDescription": "`async` methods end with `Async` (`async void` handlers and `Main` are exempt)."
         },
-        "dotpilot.codingStandards.naming.properties": {
+        "codestudio.codingStandards.naming.properties": {
           "type": "string",
           "enum": [
             "PascalCase",
@@ -641,7 +717,7 @@
           "description": "Properties and events.",
           "order": 25
         },
-        "dotpilot.codingStandards.naming.publicFields": {
+        "codestudio.codingStandards.naming.publicFields": {
           "type": "string",
           "enum": [
             "PascalCase",
@@ -656,7 +732,7 @@
           "description": "Public, internal and protected fields.",
           "order": 26
         },
-        "dotpilot.codingStandards.naming.privateFields": {
+        "codestudio.codingStandards.naming.privateFields": {
           "type": "string",
           "enum": [
             "PascalCase",
@@ -671,7 +747,7 @@
           "description": "Private instance fields.",
           "order": 27
         },
-        "dotpilot.codingStandards.naming.privateStaticFields": {
+        "codestudio.codingStandards.naming.privateStaticFields": {
           "type": "string",
           "enum": [
             "PascalCase",
@@ -686,7 +762,7 @@
           "description": "Private static fields.",
           "order": 28
         },
-        "dotpilot.codingStandards.naming.constants": {
+        "codestudio.codingStandards.naming.constants": {
           "type": "string",
           "enum": [
             "PascalCase",
@@ -701,7 +777,7 @@
           "description": "Constant fields and locals.",
           "order": 29
         },
-        "dotpilot.codingStandards.naming.localsAndParameters": {
+        "codestudio.codingStandards.naming.localsAndParameters": {
           "type": "string",
           "enum": [
             "PascalCase",
@@ -716,7 +792,7 @@
           "description": "Local variables and parameters.",
           "order": 30
         },
-        "dotpilot.codingStandards.style.var": {
+        "codestudio.codingStandards.style.var": {
           "type": "string",
           "enum": [
             "whenTypeIsApparent",
@@ -732,45 +808,45 @@
           "order": 40,
           "description": "Preferred use of 'var' (enforced by the C# language service and dotnet format)."
         },
-        "dotpilot.codingStandards.style.braces": {
+        "codestudio.codingStandards.style.braces": {
           "type": "boolean",
           "default": true,
           "order": 41,
           "description": "Require braces for if/else/for/while bodies."
         },
-        "dotpilot.codingStandards.style.fileScopedNamespaces": {
+        "codestudio.codingStandards.style.fileScopedNamespaces": {
           "type": "boolean",
           "default": true,
           "order": 42,
           "markdownDescription": "Prefer file-scoped namespaces (`namespace X;`)."
         },
-        "dotpilot.codingStandards.style.usingsOutsideNamespace": {
+        "codestudio.codingStandards.style.usingsOutsideNamespace": {
           "type": "boolean",
           "default": true,
           "order": 43,
           "description": "Place using directives outside the namespace."
         },
-        "dotpilot.codingStandards.style.predefinedTypes": {
+        "codestudio.codingStandards.style.predefinedTypes": {
           "type": "boolean",
           "default": true,
           "order": 44,
           "markdownDescription": "Use `int`/`string` instead of `Int32`/`String`."
         },
-        "dotpilot.formatter.enabled": {
+        "codestudio.formatter.enabled": {
           "type": "boolean",
           "default": true,
           "order": 50,
-          "markdownDescription": "Provide a C# formatter (Format Document, format on save). If another C# formatter is installed, pick DotPilot with *Format Document With...* \u2192 *Configure Default Formatter*."
+          "markdownDescription": "Provide a C# formatter (Format Document, format on save). If another C# formatter is installed, pick CodeStudio with *Format Document With...* \u2192 *Configure Default Formatter*."
         },
-        "dotpilot.formatter.engine": {
+        "codestudio.formatter.engine": {
           "type": "string",
           "enum": [
             "dotnet-format",
             "csharpier"
           ],
           "enumDescriptions": [
-            "Built into the .NET SDK; follows .editorconfig (including DotPilot coding standards). Whitespace and indentation only.",
-            "CSharpier, the opinionated \"Prettier\" for C# (install with DotPilot: Install CSharpier). Rewraps and restructures code consistently."
+            "Built into the .NET SDK; follows .editorconfig (including CodeStudio coding standards). Whitespace and indentation only.",
+            "CSharpier, the opinionated \"Prettier\" for C# (install with CodeStudio: Install CSharpier). Rewraps and restructures code consistently."
           ],
           "default": "dotnet-format",
           "order": 51,
@@ -791,19 +867,144 @@
     },
     "taskDefinitions": [
       {
-        "type": "dotpilot",
+        "type": "codestudio",
         "required": [
           "label"
         ],
         "properties": {
           "label": {
             "type": "string",
-            "description": "DotPilot command label"
+            "description": "CodeStudio command label"
           },
           "target": {
             "type": "string",
             "description": "Solution or project file"
           }
+        }
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "codestudio.debugStartupProject",
+        "key": "f5",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inDebugMode"
+      },
+      {
+        "command": "codestudio.runStartupProject",
+        "key": "ctrl+f5",
+        "mac": "ctrl+f5",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inDebugMode"
+      }
+    ],
+    "colors": [
+      {
+        "id": "codestudio.solutionIcon",
+        "description": "Solution Explorer: solution node icon.",
+        "defaults": {
+          "dark": "#B180D7",
+          "light": "#652D90",
+          "highContrast": "#D2A8FF",
+          "highContrastLight": "#4B1F70"
+        }
+      },
+      {
+        "id": "codestudio.solutionFolderIcon",
+        "description": "Solution Explorer: solution folder (from the .sln) icon.",
+        "defaults": {
+          "dark": "#DCB67A",
+          "light": "#B8862B",
+          "highContrast": "#FFD580",
+          "highContrastLight": "#7A5300"
+        }
+      },
+      {
+        "id": "codestudio.virtualFolderIcon",
+        "description": "Solution Explorer: CodeStudio virtual folder icon.",
+        "defaults": {
+          "dark": "#E8C46A",
+          "light": "#C28A00",
+          "highContrast": "#FFE08A",
+          "highContrastLight": "#7A5300"
+        }
+      },
+      {
+        "id": "codestudio.csharpProjectIcon",
+        "description": "Solution Explorer: C# project icon.",
+        "defaults": {
+          "dark": "#89D185",
+          "light": "#388A34",
+          "highContrast": "#A6F5A0",
+          "highContrastLight": "#1E5C1A"
+        }
+      },
+      {
+        "id": "codestudio.fsharpProjectIcon",
+        "description": "Solution Explorer: F# project icon.",
+        "defaults": {
+          "dark": "#56B6C2",
+          "light": "#0E7C86",
+          "highContrast": "#7FE3EF",
+          "highContrastLight": "#06545B"
+        }
+      },
+      {
+        "id": "codestudio.vbProjectIcon",
+        "description": "Solution Explorer: Visual Basic project icon.",
+        "defaults": {
+          "dark": "#75BEFF",
+          "light": "#1A73C9",
+          "highContrast": "#9CD2FF",
+          "highContrastLight": "#0B4F8F"
+        }
+      },
+      {
+        "id": "codestudio.webProjectIcon",
+        "description": "Solution Explorer: ASP.NET Core / web project icon.",
+        "defaults": {
+          "dark": "#4FA3FF",
+          "light": "#0060C0",
+          "highContrast": "#80BFFF",
+          "highContrastLight": "#00428A"
+        }
+      },
+      {
+        "id": "codestudio.testProjectIcon",
+        "description": "Solution Explorer: test project icon.",
+        "defaults": {
+          "dark": "#C586C0",
+          "light": "#AF00DB",
+          "highContrast": "#E2A8DD",
+          "highContrastLight": "#7A0099"
+        }
+      },
+      {
+        "id": "codestudio.packageIcon",
+        "description": "Solution Explorer: NuGet package icon.",
+        "defaults": {
+          "dark": "#4FA3FF",
+          "light": "#0060C0",
+          "highContrast": "#80BFFF",
+          "highContrastLight": "#00428A"
+        }
+      },
+      {
+        "id": "codestudio.dependencyIcon",
+        "description": "Solution Explorer: dependencies, frameworks and project reference icons.",
+        "defaults": {
+          "dark": "#A0A0A0",
+          "light": "#616161",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "codestudio.errorIcon",
+        "description": "Solution Explorer: icon for projects that cannot be read.",
+        "defaults": {
+          "dark": "errorForeground",
+          "light": "errorForeground",
+          "highContrast": "errorForeground",
+          "highContrastLight": "errorForeground"
         }
       }
     ]

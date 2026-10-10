@@ -37,7 +37,7 @@ function element(text: string, name: string): string | undefined {
 }
 
 /**
- * Lightweight, read-only extraction of the items DotPilot displays. This is not an
+ * Lightweight, read-only extraction of the items CodeStudio displays. This is not an
  * MSBuild evaluator: conditions, imports and Directory.Build.props are not applied.
  */
 export function parseProjectXml(xml: string, projectPath: string): ProjectInfo {

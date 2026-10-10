@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { execFile } from 'node:child_process';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import type { DotPilotApi } from '../../src/extension';
+import type { CodeStudioApi } from '../../src/extension';
 import type { ExplorerNode } from '../../src/explorer/solution-tree-item';
 import type { NuGetPanel, PanelMessage } from '../../src/nuget/nuget-panel';
 import { assignProject, createFolder, layoutPathFor } from '../../src/storage/layout-store';
@@ -16,7 +16,7 @@ function withTimeout<T>(p: Thenable<T>, ms: number, what: string): Promise<T> {
   ]);
 }
 
-async function labels(api: DotPilotApi, node?: ExplorerNode): Promise<string[]> {
+async function labels(api: CodeStudioApi, node?: ExplorerNode): Promise<string[]> {
   const children = await api.provider.getChildren(node);
   return Promise.all(children.map(async c => {
     const item = await api.provider.getTreeItem(c);
@@ -24,7 +24,7 @@ async function labels(api: DotPilotApi, node?: ExplorerNode): Promise<string[]> 
   }));
 }
 
-async function child(api: DotPilotApi, parent: ExplorerNode | undefined, label: string): Promise<ExplorerNode> {
+async function child(api: CodeStudioApi, parent: ExplorerNode | undefined, label: string): Promise<ExplorerNode> {
   for (const c of await api.provider.getChildren(parent)) {
     const item = await api.provider.getTreeItem(c);
     if ((typeof item.label === 'string' ? item.label : item.label?.label) === label) return c;
@@ -59,7 +59,7 @@ function execDotnet(args: string[], cwd: string): Promise<void> {
     execFile('dotnet', args, { cwd }, (err, stdout, stderr) => (err ? reject(new Error(`${stdout}\n${stderr}`.trim() || err.message)) : resolve())));
 }
 
-async function projectNode(api: DotPilotApi, name: string): Promise<ExplorerNode> {
+async function projectNode(api: CodeStudioApi, name: string): Promise<ExplorerNode> {
   const project = api.manager.solution!.model.projects.find(p => p.name === name)!;
   const [root] = await api.provider.getChildren();
   const find = async (nodes: ExplorerNode[]): Promise<ExplorerNode | undefined> => {
@@ -95,12 +95,12 @@ async function step(name: string, fn: () => Promise<void>): Promise<void> {
 export async function run(): Promise<void> {
   const workspace = vscode.workspace.workspaceFolders![0].uri.fsPath;
   const sln = path.join(workspace, 'SampleApp.sln');
-  let api!: DotPilotApi;
-  console.log('DotPilot integration tests');
+  let api!: CodeStudioApi;
+  console.log('CodeStudio integration tests');
   watchErrors();
 
   await step('extension activates', async () => {
-    const ext = vscode.extensions.getExtension<DotPilotApi>('dotpilot.dotpilot');
+    const ext = vscode.extensions.getExtension<CodeStudioApi>('codestudio.codestudio');
     assert.ok(ext, 'extension not found');
     api = await ext.activate();
     assert.ok(ext.isActive);
@@ -109,23 +109,23 @@ export async function run(): Promise<void> {
 
   await step('Solution Explorer becomes the default explorer and can be reverted from settings', async () => {
     await api.ready;
-    const config = () => vscode.workspace.getConfiguration('dotpilot');
+    const config = () => vscode.workspace.getConfiguration('codestudio');
     assert.equal(config().get('defaultExplorer'), true, 'on by default');
     // The fixture holds both SampleApp.sln and SampleApp.slnx, so nothing auto-opens; open one explicitly.
     assert.equal(api.manager.solution, undefined, 'ambiguous workspace must not auto-open');
-    await vscode.commands.executeCommand('dotpilot.openSolution', sln);
+    await vscode.commands.executeCommand('codestudio.openSolution', sln);
     await api.defaultExplorer.sync();
     assert.equal(api.defaultExplorer.filesViewHidden, true, 'built-in Files view hidden');
-    assert.equal(api.defaultExplorer.activeViewId, 'dotpilot.solutionExplorer.explorer');
-    await vscode.commands.executeCommand('dotpilot.solutionExplorer.explorer.focus');
+    assert.equal(api.defaultExplorer.activeViewId, 'codestudio.solutionExplorer.explorer');
+    await vscode.commands.executeCommand('codestudio.solutionExplorer.explorer.focus');
 
     // Revert via the command (also offered in the view's "..." menu and the setting's description link).
-    await vscode.commands.executeCommand('dotpilot.restoreDefaultExplorer');
+    await vscode.commands.executeCommand('codestudio.restoreDefaultExplorer');
     assert.equal(config().inspect('defaultExplorer')!.globalValue, false);
     assert.equal(api.defaultExplorer.filesViewHidden, false, 'Files view restored');
-    assert.equal(api.defaultExplorer.activeViewId, 'dotpilot.solutionExplorer');
+    assert.equal(api.defaultExplorer.activeViewId, 'codestudio.solutionExplorer');
     await vscode.commands.executeCommand('workbench.explorer.fileView.focus');
-    await vscode.commands.executeCommand('dotpilot.solutionExplorer.focus');
+    await vscode.commands.executeCommand('codestudio.solutionExplorer.focus');
 
     // Toggling the checkbox in Settings works the same way.
     await config().update('defaultExplorer', true, vscode.ConfigurationTarget.Global);
@@ -135,7 +135,7 @@ export async function run(): Promise<void> {
     await api.defaultExplorer.sync();
     assert.equal(api.defaultExplorer.filesViewHidden, false);
 
-    await vscode.commands.executeCommand('dotpilot.makeDefaultExplorer');
+    await vscode.commands.executeCommand('codestudio.makeDefaultExplorer');
     assert.equal(api.defaultExplorer.filesViewHidden, true);
   });
 
@@ -147,7 +147,7 @@ export async function run(): Promise<void> {
   });
 
   await step('opens an existing .sln and shows solution folders and projects', async () => {
-    await vscode.commands.executeCommand('dotpilot.openSolution', sln);
+    await vscode.commands.executeCommand('codestudio.openSolution', sln);
     assert.equal(api.manager.solution?.model.path, sln);
     const [root] = await api.provider.getChildren();
     assert.equal(root.type, 'solution');
@@ -179,7 +179,7 @@ export async function run(): Promise<void> {
     const saved = JSON.parse(readFileSync(layoutPathFor(sln), 'utf8'));
     assert.equal(saved.folders[0].name, 'Backend');
     // Re-open (as after a restart) and confirm the layout is restored from disk.
-    await vscode.commands.executeCommand('dotpilot.openSolution', sln);
+    await vscode.commands.executeCommand('codestudio.openSolution', sln);
     assert.deepEqual(api.manager.solution?.layout.assignments, { 'src/Sample.Core/Sample.Core.csproj': 'it-backend' });
   });
 
@@ -239,18 +239,62 @@ export async function run(): Promise<void> {
   });
 
   await step('Restore Solution runs dotnet restore', async () => {
-    await withTimeout(vscode.commands.executeCommand('dotpilot.restoreSolution'), 240000, 'restore');
+    await withTimeout(vscode.commands.executeCommand('codestudio.restoreSolution'), 240000, 'restore');
     for (const p of ['src/Sample.Core', 'src/Sample.App', 'tests/Sample.Tests']) {
       assert.ok(existsSync(path.join(workspace, p, 'obj', 'project.assets.json')), `${p} not restored`);
     }
   });
 
   await step('Build Solution runs dotnet build', async () => {
-    await withTimeout(vscode.commands.executeCommand('dotpilot.buildSolution'), 240000, 'build');
+    await withTimeout(vscode.commands.executeCommand('codestudio.buildSolution'), 240000, 'build');
     const dll = path.join(workspace, 'src', 'Sample.App', 'bin', 'Debug', 'net10.0', 'Sample.App.dll');
     assert.ok(existsSync(dll), `${dll} missing`);
   });
 
+
+
+  await step('Startup project: set, shown in tree, persisted, run, debug fallback, clear', async () => {
+    const appNode = await projectNode(api, 'Sample.App');
+    await vscode.commands.executeCommand('codestudio.setStartupProject', appNode);
+    assert.equal(api.manager.solution!.layout.startupProject, 'src/Sample.App/Sample.App.csproj');
+    assert.equal(JSON.parse(readFileSync(layoutPathFor(sln), 'utf8')).startupProject, 'src/Sample.App/Sample.App.csproj');
+    const item = await api.provider.getTreeItem(await projectNode(api, 'Sample.App'));
+    assert.match(item.contextValue!, /^project\.startup/);
+    assert.match(String(item.description), /^startup/);
+    assert.deepEqual((item.label as vscode.TreeItemLabel).highlights, [[0, 'Sample.App'.length]]);
+    assert.equal(api.startup.startupProject?.name, 'Sample.App');
+    // Icons use CodeStudio's contributed theme colors.
+    assert.equal(((item.iconPath as vscode.ThemeIcon).color as vscode.ThemeColor).id, 'codestudio.csharpProjectIcon');
+
+    // A class library asks for confirmation; cancelling keeps the current startup project.
+    stub('showWarningMessage', async () => undefined);
+    await vscode.commands.executeCommand('codestudio.setStartupProject', await projectNode(api, 'Sample.Core'));
+    assert.equal(api.manager.solution!.layout.startupProject, 'src/Sample.App/Sample.App.csproj');
+    restoreStubs(); watchErrors();
+
+    // Start Without Debugging runs `dotnet run` for the startup project.
+    const ended = new Promise<number | undefined>(resolve => {
+      const sub = vscode.tasks.onDidEndTaskProcess(e => {
+        if (e.execution.task.name === 'Run: Sample.App') { sub.dispose(); resolve(e.exitCode); }
+      });
+    });
+    const execution = await vscode.commands.executeCommand<vscode.TaskExecution>('codestudio.runStartupProject');
+    assert.ok(execution, 'run task started');
+    assert.deepEqual((execution.task.execution as vscode.ProcessExecution).args, ['run', '--project', path.join(workspace, 'src', 'Sample.App', 'Sample.App.csproj')]);
+    assert.equal(await withTimeout(ended, 180000, 'dotnet run'), 0, 'console app ran and exited cleanly');
+
+    // Without a C# extension, Start Debugging explains why and can fall back to running.
+    let warning = '';
+    stub('showWarningMessage', async (m: string) => { warning = m; return undefined; });
+    const debugged = await vscode.commands.executeCommand('codestudio.debugStartupProject');
+    assert.equal(debugged, false);
+    assert.match(warning, /coreclr/);
+    restoreStubs(); watchErrors();
+
+    await vscode.commands.executeCommand('codestudio.clearStartupProject');
+    assert.equal(api.manager.solution!.layout.startupProject, undefined);
+    assert.match((await api.provider.getTreeItem(await projectNode(api, 'Sample.App'))).contextValue!, /^project$/);
+  });
 
   await step('Add Project Reference dialog adds a reference via dotnet add', async () => {
     let offered: string[] = [];
@@ -259,7 +303,7 @@ export async function run(): Promise<void> {
       return items.filter(i => labelOf(i) === 'Sample.Core');
     });
     stub('showInformationMessage', async () => undefined);
-    await vscode.commands.executeCommand('dotpilot.addProjectReference', await projectNode(api, 'Sample.Tests'));
+    await vscode.commands.executeCommand('codestudio.addProjectReference', await projectNode(api, 'Sample.Tests'));
     restoreStubs(); watchErrors();
     assert.ok(!offered.includes('Sample.Tests'), 'project must not be offered to itself');
     const xml = readFileSync(path.join(workspace, 'tests', 'Sample.Tests', 'Sample.Tests.csproj'), 'utf8');
@@ -268,7 +312,7 @@ export async function run(): Promise<void> {
 
   await step('NuGet Package Manager UI: browse, details, install, updates, update all, uninstall', async () => {
     const csproj = path.join(workspace, 'src', 'Sample.Core', 'Sample.Core.csproj');
-    const panel = await vscode.commands.executeCommand<NuGetPanel>('dotpilot.manageNuGetPackages', await projectNode(api, 'Sample.Core'));
+    const panel = await vscode.commands.executeCommand<NuGetPanel>('codestudio.manageNuGetPackages', await projectNode(api, 'Sample.Core'));
     assert.ok(panel, 'panel opened');
     const last = <T extends PanelMessage['type']>(type: T) => [...panel.posted].reverse().find(m => m.type === type) as Extract<PanelMessage, { type: T }> | undefined;
     stub('withProgress', async (_o: unknown, task: () => Promise<unknown>) => task());
@@ -347,17 +391,17 @@ export async function run(): Promise<void> {
       stub('showQuickPick', async (items: any[]) => items.find(i => i.scope === 'local'));
       stub('withProgress', async (_o: unknown, task: () => Promise<unknown>) => task());
       stub('showInformationMessage', async () => undefined);
-      await withTimeout(vscode.commands.executeCommand('dotpilot.installCSharpier'), 240000, 'install csharpier');
+      await withTimeout(vscode.commands.executeCommand('codestudio.installCSharpier'), 240000, 'install csharpier');
       assert.ok(existsSync(path.join(workspace, 'dotnet-tools.json')) || existsSync(path.join(workspace, '.config', 'dotnet-tools.json')), 'tool manifest created');
-      assert.equal(vscode.workspace.getConfiguration('dotpilot.formatter').get('engine'), 'csharpier');
+      assert.equal(vscode.workspace.getConfiguration('codestudio.formatter').get('engine'), 'csharpier');
       const viaCSharpier = await format();
       assert.match(viaCSharpier, /if \(a > 1\)\n        \{\n            return a;\n        \}/, viaCSharpier);
 
       // Turning the formatter off unregisters it.
-      await vscode.workspace.getConfiguration('dotpilot.formatter').update('enabled', false, vscode.ConfigurationTarget.Workspace);
+      await vscode.workspace.getConfiguration('codestudio.formatter').update('enabled', false, vscode.ConfigurationTarget.Workspace);
       assert.equal(api.formatter.registered, false);
     } finally {
-      for (const key of ['enabled', 'engine']) await vscode.workspace.getConfiguration('dotpilot.formatter').update(key, undefined, vscode.ConfigurationTarget.Workspace);
+      for (const key of ['enabled', 'engine']) await vscode.workspace.getConfiguration('codestudio.formatter').update(key, undefined, vscode.ConfigurationTarget.Workspace);
       await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
       rmSync(file, { force: true });
       restoreStubs(); watchErrors();
@@ -369,11 +413,11 @@ export async function run(): Promise<void> {
     const extra = path.join(workspace, 'extra', 'Sample.Extra', 'Sample.Extra.csproj');
     stub('showOpenDialog', async () => [vscode.Uri.file(extra)]);
     stub('showInformationMessage', async () => undefined);
-    await withTimeout(vscode.commands.executeCommand('dotpilot.addExistingProject'), 60000, 'add project');
+    await withTimeout(vscode.commands.executeCommand('codestudio.addExistingProject'), 60000, 'add project');
     // Adding it a second time is refused with a warning, not an error.
     let warning = '';
     stub('showWarningMessage', async (m: string) => { warning = m; return undefined; });
-    await vscode.commands.executeCommand('dotpilot.addExistingProject');
+    await vscode.commands.executeCommand('codestudio.addExistingProject');
     restoreStubs(); watchErrors();
     assert.match(warning, /already in the solution/);
     assert.ok(api.manager.solution!.model.projects.some(p => p.name === 'Sample.Extra'));
@@ -395,7 +439,7 @@ export async function run(): Promise<void> {
     });
     stub('withProgress', async (_o: unknown, task: () => Promise<unknown>) => task());
     stub('showInformationMessage', async () => undefined);
-    await withTimeout(vscode.commands.executeCommand('dotpilot.newProject', backend), 300000, 'new project');
+    await withTimeout(vscode.commands.executeCommand('codestudio.newProject', backend), 300000, 'new project');
     restoreStubs(); watchErrors();
     const csproj = path.join(workspace, 'src', 'SampleApp.Api', 'SampleApp.Api.csproj');
     assert.ok(existsSync(csproj), 'project created under src/');
@@ -407,7 +451,7 @@ export async function run(): Promise<void> {
     const addItem = async (target: ExplorerNode, templateId: string, name: string) => {
       stub('showQuickPick', async (items: any[]) => items.find(i => i.template.id === templateId));
       stub('showInputBox', async () => name);
-      await vscode.commands.executeCommand('dotpilot.newItem', target);
+      await vscode.commands.executeCommand('codestudio.newItem', target);
     };
     // General C# templates into a sub-folder of a class library.
     const modelsDir = path.join(workspace, 'src', 'Sample.Core', 'Domain', 'Orders');
@@ -439,14 +483,14 @@ export async function run(): Promise<void> {
     let dupMessage: string | undefined;
     stub('showQuickPick', async (items: any[]) => items.find(i => i.template.id === 'class'));
     stub('showInputBox', async (opts: vscode.InputBoxOptions) => { dupMessage = await opts.validateInput!('Order') as string; return undefined; });
-    await vscode.commands.executeCommand('dotpilot.newItem', await child(api, await child(api, await projectNode(api, 'Sample.Core'), 'Domain'), 'Orders'));
+    await vscode.commands.executeCommand('codestudio.newItem', await child(api, await child(api, await projectNode(api, 'Sample.Core'), 'Domain'), 'Orders'));
     restoreStubs(); watchErrors();
     assert.match(dupMessage ?? '', /already exists/);
 
     // Everything generated must compile.
     let status = '';
     stub('setStatusBarMessage', (m: string) => { status = m; return { dispose() {} }; });
-    await withTimeout(vscode.commands.executeCommand('dotpilot.buildSolution'), 300000, 'build');
+    await withTimeout(vscode.commands.executeCommand('codestudio.buildSolution'), 300000, 'build');
     restoreStubs(); watchErrors();
     if (!/succeeded/.test(status)) {
       const detail = await execDotnet(['build', sln, '-nologo', '-v', 'q'], workspace).then(() => 'CLI build succeeded', (e: Error) => e.message);
@@ -457,7 +501,7 @@ export async function run(): Promise<void> {
 
 
   await step('Coding standards: .editorconfig, live diagnostics, quick fix, build enforcement and clean revert', async () => {
-    const cfg = () => vscode.workspace.getConfiguration('dotpilot.codingStandards');
+    const cfg = () => vscode.workspace.getConfiguration('codestudio.codingStandards');
     const editorconfig = path.join(workspace, '.editorconfig');
     const badFile = path.join(workspace, 'src', 'Sample.Core', 'Inventory.cs');
     try {
@@ -469,7 +513,7 @@ export async function run(): Promise<void> {
       await cfg().update('style.var', 'always', vscode.ConfigurationTarget.Workspace); // template code uses var everywhere
       await api.standards.syncEditorConfig();
       const written = readFileSync(editorconfig, 'utf8');
-      assert.match(written, /# BEGIN DotPilot coding standards/);
+      assert.match(written, /# BEGIN CodeStudio coding standards/);
       assert.match(written, /dotnet_naming_rule\.dp_private_fields\.severity = warning/);
 
       // Live diagnostics + quick fix (no C# extension here, so the file-local fallback rename is used).
@@ -477,7 +521,7 @@ export async function run(): Promise<void> {
       const doc = await vscode.workspace.openTextDocument(badFile);
       await vscode.window.showTextDocument(doc);
       api.standards.lint(doc);
-      const diags = () => vscode.languages.getDiagnostics(doc.uri).filter(x => x.source === 'DotPilot');
+      const diags = () => vscode.languages.getDiagnostics(doc.uri).filter(x => x.source === 'CodeStudio');
       assert.deepEqual(diags().map(x => doc.getText(x.range)), ['Count', 'Amount', 'New_Total']);
       const target = diags().find(x => doc.getText(x.range) === 'New_Total')!;
       const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>('vscode.executeCodeActionProvider', doc.uri, target.range);
@@ -495,7 +539,7 @@ export async function run(): Promise<void> {
       await api.standards.syncEditorConfig();
       let status = '';
       stub('setStatusBarMessage', (m: string) => { status = m; return { dispose() {} }; });
-      await withTimeout(vscode.commands.executeCommand('dotpilot.buildProject', await projectNode(api, 'Sample.Core')), 240000, 'enforced build');
+      await withTimeout(vscode.commands.executeCommand('codestudio.buildProject', await projectNode(api, 'Sample.Core')), 240000, 'enforced build');
       const buildErrors = takeErrors();
       assert.equal(status, '', 'build must not succeed with violations');
       assert.ok(buildErrors.some(e => /Build Project: Sample.Core failed/.test(e)), JSON.stringify(buildErrors));
@@ -504,7 +548,7 @@ export async function run(): Promise<void> {
       let ide1006: string[] = [];
       for (let waited = 0; waited < 15000 && ide1006.length < 2; waited += 250) {
         await new Promise(r => setTimeout(r, 250));
-        all = vscode.languages.getDiagnostics().flatMap(([u, ds]) => ds.filter(x => x.source !== 'DotPilot').map(x => `${u.fsPath}|${typeof x.code === 'object' ? x.code.value : x.code}|${x.message}`));
+        all = vscode.languages.getDiagnostics().flatMap(([u, ds]) => ds.filter(x => x.source !== 'CodeStudio').map(x => `${u.fsPath}|${typeof x.code === 'object' ? x.code.value : x.code}|${x.message}`));
         ide1006 = all.filter(x => x.startsWith(badFile + '|') && x.includes('IDE1006'));
       }
       if (ide1006.length < 2) {
@@ -514,13 +558,13 @@ export async function run(): Promise<void> {
       }
 
       writeFileSync(badFile, readFileSync(badFile, 'utf8').replace(/\bCount\b/g, '_count').replace(/\bAmount\b/g, 'amount'));
-      await withTimeout(vscode.commands.executeCommand('dotpilot.buildProject', await projectNode(api, 'Sample.Core')), 240000, 'clean build');
+      await withTimeout(vscode.commands.executeCommand('codestudio.buildProject', await projectNode(api, 'Sample.Core')), 240000, 'clean build');
       assert.match(status, /succeeded/, `fixed code should build; errors: ${JSON.stringify(takeErrors())}`);
 
-      // Turning the feature off removes DotPilot's .editorconfig (it created the file) and clears diagnostics.
+      // Turning the feature off removes CodeStudio's .editorconfig (it created the file) and clears diagnostics.
       for (const key of ['severity', 'enforceInBuild', 'style.var', 'enabled']) await cfg().update(key, undefined, vscode.ConfigurationTarget.Workspace);
       await api.standards.syncEditorConfig();
-      assert.ok(!existsSync(editorconfig), '.editorconfig created by DotPilot is removed');
+      assert.ok(!existsSync(editorconfig), '.editorconfig created by CodeStudio is removed');
       writeFileSync(badFile, readFileSync(badFile, 'utf8').replace('_count', 'Count'));
       api.standards.lint(await vscode.workspace.openTextDocument(badFile));
       assert.deepEqual(diags(), []);
@@ -529,7 +573,7 @@ export async function run(): Promise<void> {
       writeFileSync(editorconfig, 'root = true\n\n[*]\nindent_style = space\n');
       await cfg().update('enabled', true, vscode.ConfigurationTarget.Workspace);
       await api.standards.syncEditorConfig();
-      assert.match(readFileSync(editorconfig, 'utf8'), /indent_style = space[\s\S]*BEGIN DotPilot/);
+      assert.match(readFileSync(editorconfig, 'utf8'), /indent_style = space[\s\S]*BEGIN CodeStudio/);
       await cfg().update('enabled', undefined, vscode.ConfigurationTarget.Workspace);
       await api.standards.syncEditorConfig();
       assert.equal(readFileSync(editorconfig, 'utf8'), 'root = true\n\n[*]\nindent_style = space\n');
@@ -545,9 +589,9 @@ export async function run(): Promise<void> {
   await step('Run Tests runs dotnet test on a test project and refuses non-test projects', async () => {
     let ok = '';
     stub('setStatusBarMessage', (m: string) => { ok = m; return { dispose() {} }; });
-    await withTimeout(vscode.commands.executeCommand('dotpilot.runTests', await projectNode(api, 'Sample.Tests')), 300000, 'test');
+    await withTimeout(vscode.commands.executeCommand('codestudio.runTests', await projectNode(api, 'Sample.Tests')), 300000, 'test');
     assert.match(ok, /Run Tests: Sample.Tests succeeded/);
-    await vscode.commands.executeCommand('dotpilot.runTests', await projectNode(api, 'Sample.Core'));
+    await vscode.commands.executeCommand('codestudio.runTests', await projectNode(api, 'Sample.Core'));
     restoreStubs(); watchErrors();
     assert.ok(takeErrors().some(e => /does not look like a test project/.test(e)));
   });
@@ -555,7 +599,7 @@ export async function run(): Promise<void> {
   await step('Clean Solution runs dotnet clean', async () => {
     const dll = path.join(workspace, 'src', 'Sample.App', 'bin', 'Debug', 'net10.0', 'Sample.App.dll');
     assert.ok(existsSync(dll), 'precondition: build output exists');
-    await withTimeout(vscode.commands.executeCommand('dotpilot.cleanSolution'), 240000, 'clean');
+    await withTimeout(vscode.commands.executeCommand('codestudio.cleanSolution'), 240000, 'clean');
     assert.ok(!existsSync(dll), 'clean should delete build output');
   });
 
@@ -578,7 +622,7 @@ export async function run(): Promise<void> {
       }
       return undefined;
     });
-    await vscode.commands.executeCommand('dotpilot.applyRecommendedSettings');
+    await vscode.commands.executeCommand('codestudio.applyRecommendedSettings');
     restoreStubs(); watchErrors();
     assert.ok(previewShown, 'preview step reached');
     assert.equal(offeredMinimap?.picked, false, 'user-set value must not be preselected');
@@ -587,19 +631,19 @@ export async function run(): Promise<void> {
     assert.equal(after.inspect('editor.bracketPairColorization.enabled')!.workspaceValue, true);
     const cs = vscode.workspace.getConfiguration(undefined, { languageId: 'csharp' });
     assert.equal(cs.inspect('editor.formatOnSave')!.workspaceLanguageValue, true);
-    const preview = vscode.workspace.textDocuments.find(d => d.isUntitled && d.getText().includes('DotPilot: settings'));
+    const preview = vscode.workspace.textDocuments.find(d => d.isUntitled && d.getText().includes('CodeStudio: settings'));
     assert.ok(preview, 'preview document opened');
     assert.ok(!preview.getText().includes('minimap'), 'unselected setting not in preview');
   });
 
-  await step('DotPilot Dark and Light themes are contributed and selectable', async () => {
-    const ext = vscode.extensions.getExtension('dotpilot.dotpilot')!;
+  await step('CodeStudio Dark and Light themes are contributed and selectable', async () => {
+    const ext = vscode.extensions.getExtension('codestudio.codestudio')!;
     const themes = ext.packageJSON.contributes.themes.map((t: { label: string }) => t.label);
-    assert.deepEqual(themes, ['DotPilot Dark', 'DotPilot Light']);
-    await vscode.workspace.getConfiguration('workbench').update('colorTheme', 'DotPilot Light', vscode.ConfigurationTarget.Workspace);
+    assert.deepEqual(themes, ['CodeStudio Dark', 'CodeStudio Light']);
+    await vscode.workspace.getConfiguration('workbench').update('colorTheme', 'CodeStudio Light', vscode.ConfigurationTarget.Workspace);
     await new Promise(r => setTimeout(r, 1500));
     assert.equal(vscode.window.activeColorTheme.kind, vscode.ColorThemeKind.Light);
-    await vscode.workspace.getConfiguration('workbench').update('colorTheme', 'DotPilot Dark', vscode.ConfigurationTarget.Workspace);
+    await vscode.workspace.getConfiguration('workbench').update('colorTheme', 'CodeStudio Dark', vscode.ConfigurationTarget.Workspace);
     await new Promise(r => setTimeout(r, 1500));
     assert.equal(vscode.window.activeColorTheme.kind, vscode.ColorThemeKind.Dark);
   });
