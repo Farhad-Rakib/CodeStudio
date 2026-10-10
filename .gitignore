@@ -4,5 +4,5 @@ out/
 *.vsix
 bin/
 obj/
-.codestudio/
 .vscode/.codeStudio-settings
+.claude/

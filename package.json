@@ -1,9 +1,9 @@
 {
-  "name": "codestudio",
-  "displayName": "CodeStudio - vscode dev assistant for .NET",
+  "name": "codeXstudio",
+  "displayName": "codeXstudio - vscode dev assistant for .NET",
   "description": "A Visual Studio-inspired Solution Explorer, virtual solution folders, .NET CLI commands and themes for VS Code.",
   "version": "0.1.0",
-  "publisher": "codestudio",
+  "publisher": "fhasancse",
   "icon": "images/icon.png",
   "galleryBanner": {
     "color": "#3B2585",
