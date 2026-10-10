@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DotPilot test fixture -->
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Web/Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/">
+    <Project Path="src\Services\Orders\Orders.csproj">
+      <BuildType Solution="Debug|*" Project="Release" />
+    </Project>
+  </Folder>
+  <Folder Name="/tests/unit/">
+    <Project Path="tests/Web.Tests/Web.Tests.csproj" />
+  </Folder>
+  <Project Path="lib/Core/Core.fsproj" Type="Classic F#" />
+  <Project Path="tools/A &amp; B/Tool.csproj" />
+</Solution>

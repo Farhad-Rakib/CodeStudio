@@ -1,0 +1,191 @@
+import assert from 'node:assert/strict';
+import { promises as fs } from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { describe, it } from 'node:test';
+import { parseProjectXml } from '../src/solution/project-reader';
+import { SolutionParseError } from '../src/solution/solution-model';
+import { parseSln, parseSlnx, readSolution } from '../src/solution/solution-reader';
+
+const FIXTURES = path.resolve(__dirname, '../../test/fixtures');
+const SLN_HEADER = 'Microsoft Visual Studio Solution File, Format Version 12.00\n';
+
+describe('parseSln', () => {
+  it('reads projects, solution folders, nesting and solution items', async () => {
+    const model = await readSolution(path.join(FIXTURES, 'Sample.sln'));
+    assert.equal(model.format, 'sln');
+    assert.equal(model.name, 'Sample');
+    assert.deepEqual(model.warnings, []);
+    assert.deepEqual(model.projects.map(p => p.name), ['Web', 'Orders', 'Core', 'Web.Tests']);
+
+    const byName = new Map(model.projects.map(p => [p.name, p]));
+    const src = model.folders.find(f => f.name === 'src')!;
+    const services = model.folders.find(f => f.name === 'Services')!;
+    assert.equal(services.parentFolderId, src.id);
+    assert.equal(byName.get('Web')!.parentFolderId, src.id);
+    // Nesting GUIDs are matched case-insensitively.
+    assert.equal(byName.get('Orders')!.parentFolderId, services.id);
+    assert.equal(byName.get('Core')!.parentFolderId, undefined);
+
+    const items = model.folders.find(f => f.name === 'Solution Items')!;
+    assert.deepEqual(items.files, [path.join(FIXTURES, 'README.md'), path.join(FIXTURES, 'Directory.Build.props')]);
+  });
+
+  it('normalizes backslash paths and resolves them relative to the solution directory', async () => {
+    const model = await readSolution(path.join(FIXTURES, 'Sample.sln'));
+    const orders = model.projects.find(p => p.name === 'Orders')!;
+    assert.equal(orders.relativePath, 'src/Services/Orders/Orders.csproj');
+    assert.equal(orders.key, 'src/Services/Orders/Orders.csproj');
+    assert.equal(orders.absolutePath, path.join(FIXTURES, 'src', 'Services', 'Orders', 'Orders.csproj'));
+    assert.equal(orders.kind, 'csharp');
+    assert.equal(model.projects.find(p => p.name === 'Core')!.kind, 'fsharp');
+  });
+
+  it('rejects files without the solution header', () => {
+    assert.throws(() => parseSln('Project("{x}") = "a", "b", "{c}"\n', '/s/a.sln'), SolutionParseError);
+    assert.throws(() => parseSln('', '/s/a.sln'), /missing "Microsoft Visual Studio Solution File/);
+  });
+
+  it('rejects malformed project lines with a line number', () => {
+    const text = `${SLN_HEADER}Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Broken", "a.csproj"\nEndProject\n`;
+    assert.throws(() => parseSln(text, '/s/a.sln'), (err: Error) => err instanceof SolutionParseError && /line 2/.test(err.message));
+  });
+
+  it('rejects a Project without EndProject', () => {
+    const text = `${SLN_HEADER}Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "A", "A.csproj", "{AAAAAAAA-0000-0000-0000-000000000001}"\n`;
+    assert.throws(() => parseSln(text, '/s/a.sln'), /missing EndProject/);
+  });
+
+  it('rejects very old format versions', () => {
+    assert.throws(() => parseSln('Microsoft Visual Studio Solution File, Format Version 10.00\n', '/s/a.sln'), /not supported/);
+  });
+
+  it('warns about nesting entries pointing to unknown folders and cycles instead of failing', () => {
+    const f = '2150E333-8FDC-42A3-9474-1A3956D46DE8';
+    const text = [
+      SLN_HEADER,
+      `Project("{${f}}") = "A", "A", "{00000000-0000-0000-0000-00000000000A}"`, 'EndProject',
+      `Project("{${f}}") = "B", "B", "{00000000-0000-0000-0000-00000000000B}"`, 'EndProject',
+      `Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "P", "P.csproj", "{00000000-0000-0000-0000-000000000001}"`, 'EndProject',
+      'Global', '\tGlobalSection(NestedProjects) = preSolution',
+      '\t\t{00000000-0000-0000-0000-00000000000A} = {00000000-0000-0000-0000-00000000000B}',
+      '\t\t{00000000-0000-0000-0000-00000000000B} = {00000000-0000-0000-0000-00000000000A}',
+      '\t\t{00000000-0000-0000-0000-000000000001} = {99999999-0000-0000-0000-000000000000}',
+      '\tEndGlobalSection', 'EndGlobal',
+    ].join('\n');
+    const model = parseSln(text, '/s/a.sln');
+    assert.equal(model.projects[0].parentFolderId, undefined);
+    assert.ok(model.warnings.some(w => w.includes('unknown solution folder')));
+    assert.ok(model.warnings.some(w => w.includes('cycle')));
+    // At least one folder in the cycle has been detached to the root.
+    assert.ok(model.folders.some(fd => fd.parentFolderId === undefined));
+  });
+
+  it('reports unreadable and unsupported files clearly', async () => {
+    await assert.rejects(readSolution(path.join(FIXTURES, 'missing.sln')), /Cannot read solution file/);
+    await assert.rejects(readSolution(path.join(FIXTURES, 'Sample.txt')), /Unsupported solution file type/);
+  });
+
+  it('parses a solution generated by the dotnet CLI shape (CRLF, BOM, blank first line)', () => {
+    const text = '﻿\r\n' + SLN_HEADER.replace('\n', '\r\n') + '# Visual Studio Version 17\r\nGlobal\r\nEndGlobal\r\n';
+    const model = parseSln(text, path.join(os.tmpdir(), 'Empty.sln'));
+    assert.equal(model.projects.length, 0);
+    assert.equal(model.folders.length, 0);
+  });
+});
+
+describe('parseSlnx', () => {
+  it('reads folders (including implicit parents), projects and files', async () => {
+    const model = await readSolution(path.join(FIXTURES, 'Sample.slnx'));
+    assert.equal(model.format, 'slnx');
+    assert.deepEqual(model.folders.map(f => f.id).sort(), ['/Solution Items/', '/src/', '/src/Services/', '/tests/', '/tests/unit/']);
+    assert.equal(model.folders.find(f => f.id === '/src/Services/')!.parentFolderId, '/src/');
+    assert.equal(model.folders.find(f => f.id === '/tests/unit/')!.parentFolderId, '/tests/');
+    assert.equal(model.folders.find(f => f.id === '/tests/unit/')!.name, 'unit');
+    assert.deepEqual(model.folders.find(f => f.id === '/Solution Items/')!.files, [path.join(FIXTURES, 'README.md')]);
+
+    const byName = new Map(model.projects.map(p => [p.name, p]));
+    assert.equal(byName.get('Web')!.parentFolderId, '/src/');
+    assert.equal(byName.get('Orders')!.relativePath, 'src/Services/Orders/Orders.csproj');
+    assert.equal(byName.get('Orders')!.parentFolderId, '/src/Services/');
+    assert.equal(byName.get('Core')!.parentFolderId, undefined);
+    assert.equal(byName.get('Tool')!.relativePath, 'tools/A & B/Tool.csproj');
+  });
+
+  it('rejects documents that are not solutions', () => {
+    assert.throws(() => parseSlnx('<Project Sdk="Microsoft.NET.Sdk" />', '/s/a.slnx'), /Root element must be <Solution>/);
+    assert.throws(() => parseSlnx('', '/s/a.slnx'), /no <Solution> element/);
+  });
+
+  it('rejects malformed XML instead of guessing', () => {
+    assert.throws(() => parseSlnx('<Solution><Folder Name="/a/"></Solution>', '/s/a.slnx'), /Mismatched closing tag/);
+    assert.throws(() => parseSlnx('<Solution>', '/s/a.slnx'), /Unclosed element/);
+    assert.throws(() => parseSlnx('<Solution><Project /></Solution>', '/s/a.slnx'), /missing the Path attribute/);
+    assert.throws(() => parseSlnx('<Solution><Folder Name="src" /></Solution>', '/s/a.slnx'), /Invalid folder Name/);
+    assert.throws(() => parseSlnx('<Solution><Folder Name="/a/"><Folder Name="/a/b/" /></Folder></Solution>', '/s/a.slnx'), /direct child/);
+    assert.throws(() => parseSlnx('<!DOCTYPE x><Solution/>', '/s/a.slnx'), /DOCTYPE/);
+    assert.throws(() => parseSlnx('<Solution>text</Solution>', '/s/a.slnx'), /Unexpected text/);
+  });
+
+  it('round-trips a file written by `dotnet new sln --format slnx`', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dotpilot-slnx-'));
+    const file = path.join(dir, 'App.slnx');
+    await fs.writeFile(file, '<Solution>\n  <Project Path="App/App.csproj" />\n</Solution>\n');
+    const model = await readSolution(file);
+    assert.equal(model.projects[0].name, 'App');
+    assert.equal(model.projects[0].absolutePath, path.join(dir, 'App', 'App.csproj'));
+  });
+});
+
+describe('SDK-generated solutions', () => {
+  it('parses .sln and .slnx produced by `dotnet new sln` / `dotnet sln add` identically', async () => {
+    const summarize = async (file: string) => {
+      const m = await readSolution(path.join(FIXTURES, 'SampleApp', file));
+      assert.deepEqual(m.warnings, []);
+      return m.projects
+        .map(p => `${p.relativePath}@${m.folders.find(f => f.id === p.parentFolderId)?.name ?? '/'}`)
+        .sort();
+    };
+    const expected = [
+      'src/Sample.App/Sample.App.csproj@src',
+      'src/Sample.Core/Sample.Core.csproj@src',
+      'tests/Sample.Tests/Sample.Tests.csproj@Tests',
+    ];
+    assert.deepEqual(await summarize('SampleApp.sln'), expected);
+    assert.deepEqual(await summarize('SampleApp.slnx'), expected);
+  });
+});
+
+describe('parseProjectXml', () => {
+  it('extracts SDK, frameworks, packages, references and test detection', () => {
+    const xml = `<Project Sdk="Microsoft.NET.Sdk.Web">
+      <PropertyGroup><TargetFrameworks>net10.0;net8.0</TargetFrameworks></PropertyGroup>
+      <ItemGroup>
+        <PackageReference Include="Serilog" Version="4.0.0" />
+        <PackageReference Include="xunit"><Version>2.9.0</Version></PackageReference>
+        <PackageReference Include="Central.Managed" />
+        <PackageReference Update="Ignored" Version="1.0.0" />
+        <!-- <PackageReference Include="Commented" Version="1.0" /> -->
+        <ProjectReference Include="..\\Core\\Core.csproj" />
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+      </ItemGroup>
+    </Project>`;
+    const info = parseProjectXml(xml, path.join('/repo', 'src', 'Web', 'Web.csproj'));
+    assert.equal(info.sdk, 'Microsoft.NET.Sdk.Web');
+    assert.deepEqual(info.targetFrameworks, ['net10.0', 'net8.0']);
+    assert.deepEqual(info.packages, [
+      { id: 'Serilog', version: '4.0.0' },
+      { id: 'xunit', version: '2.9.0' },
+      { id: 'Central.Managed', version: undefined },
+    ]);
+    assert.equal(info.projectReferences[0].name, 'Core');
+    assert.equal(info.projectReferences[0].absolutePath, path.resolve('/repo/src/Core/Core.csproj'));
+    assert.deepEqual(info.frameworkReferences, ['Microsoft.AspNetCore.App']);
+    assert.equal(info.isTestProject, true);
+  });
+
+  it('respects an explicit IsTestProject=false', () => {
+    const xml = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><IsTestProject>false</IsTestProject></PropertyGroup><ItemGroup><PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" /></ItemGroup></Project>';
+    assert.equal(parseProjectXml(xml, '/a/A.csproj').isTestProject, false);
+  });
+});

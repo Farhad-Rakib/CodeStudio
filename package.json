@@ -1,0 +1,825 @@
+{
+  "name": "dotpilot",
+  "displayName": "DotPilot Solution Explorer",
+  "description": "A Visual Studio-inspired Solution Explorer, virtual solution folders, .NET CLI commands and themes for VS Code.",
+  "version": "0.1.0",
+  "publisher": "dotpilot",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Farhad-Rakib/dotPilot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Farhad-Rakib/dotPilot/issues"
+  },
+  "homepage": "https://github.com/Farhad-Rakib/dotPilot#readme",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Themes",
+    "Other"
+  ],
+  "keywords": [
+    "dotnet",
+    "csharp",
+    "solution explorer",
+    "sln",
+    "slnx"
+  ],
+  "main": "./out/src/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/*.sln",
+    "workspaceContains:**/*.slnx",
+    "onView:dotpilot.solutionExplorer",
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dotpilot",
+          "title": "DotPilot",
+          "icon": "resources/dotpilot.svg"
+        }
+      ]
+    },
+    "views": {
+      "dotpilot": [
+        {
+          "id": "dotpilot.solutionExplorer",
+          "name": "Solution Explorer",
+          "icon": "resources/dotpilot.svg",
+          "when": "!config.dotpilot.defaultExplorer"
+        }
+      ],
+      "explorer": [
+        {
+          "id": "dotpilot.solutionExplorer.explorer",
+          "name": "Solution Explorer",
+          "icon": "resources/dotpilot.svg",
+          "when": "config.dotpilot.defaultExplorer && dotpilot.workspaceHasSolution"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "dotpilot.solutionExplorer",
+        "contents": "No solution is open.\n[Open Solution](command:dotpilot.openSolution)\nDotPilot looks for .sln and .slnx files in the current workspace.",
+        "when": "!dotpilot.solutionLoaded"
+      },
+      {
+        "view": "dotpilot.solutionExplorer.explorer",
+        "contents": "No solution is open.\n[Open Solution](command:dotpilot.openSolution)\nDotPilot looks for .sln and .slnx files in the current workspace.",
+        "when": "!dotpilot.solutionLoaded"
+      }
+    ],
+    "commands": [
+      {
+        "command": "dotpilot.openSolution",
+        "title": "Open Solution",
+        "category": "DotPilot",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "dotpilot.refresh",
+        "title": "Refresh",
+        "category": "DotPilot",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "dotpilot.filter",
+        "title": "Search Solution Explorer",
+        "category": "DotPilot",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "dotpilot.clearFilter",
+        "title": "Clear Search",
+        "category": "DotPilot",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "dotpilot.buildSolution",
+        "title": "Build Solution",
+        "category": "DotPilot",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "dotpilot.restoreSolution",
+        "title": "Restore Solution",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.cleanSolution",
+        "title": "Clean Solution",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.addExistingProject",
+        "title": "Add Existing Project...",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.addVirtualFolder",
+        "title": "Add Virtual Folder",
+        "category": "DotPilot",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "dotpilot.renameVirtualFolder",
+        "title": "Rename",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.deleteVirtualFolder",
+        "title": "Delete",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.moveProjectHere",
+        "title": "Move Project Here...",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.moveProjectToFolder",
+        "title": "Move to Virtual Folder...",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.removeFromVirtualFolder",
+        "title": "Remove from Virtual Folder",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.openProjectFile",
+        "title": "Open Project File",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.buildProject",
+        "title": "Build Project",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.addProjectReference",
+        "title": "Add Project Reference...",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.manageNuGetPackages",
+        "title": "Manage NuGet Packages...",
+        "category": "DotPilot",
+        "icon": "$(package)"
+      },
+      {
+        "command": "dotpilot.runTests",
+        "title": "Run Tests",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.openFile",
+        "title": "Open",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.revealInOS",
+        "title": "Reveal in File Explorer",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.applyRecommendedSettings",
+        "title": "Apply Recommended Settings...",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.showSdkInfo",
+        "title": "Show .NET SDK Info",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.showLog",
+        "title": "Show Log",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.newProject",
+        "title": "New Project...",
+        "category": "DotPilot",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "dotpilot.newItem",
+        "title": "New Item...",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.restoreDefaultExplorer",
+        "title": "Restore VS Code Default Explorer",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.makeDefaultExplorer",
+        "title": "Make Solution Explorer the Default Explorer",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.configureCodingStandards",
+        "title": "Configure Coding Standards...",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.checkCodingStandards",
+        "title": "Check Coding Standards",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.fixCodingStandards",
+        "title": "Fix Coding Standards...",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.renameToStandard",
+        "title": "Rename to Coding Standard",
+        "category": "DotPilot"
+      },
+      {
+        "command": "dotpilot.installCSharpier",
+        "title": "Install CSharpier (C# Prettier)...",
+        "category": "DotPilot"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "dotpilot.openSolution",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dotpilot.filter",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "group": "navigation@2"
+        },
+        {
+          "command": "dotpilot.clearFilter",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.filterActive",
+          "group": "navigation@3"
+        },
+        {
+          "command": "dotpilot.refresh",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/",
+          "group": "navigation@4"
+        },
+        {
+          "command": "dotpilot.buildSolution",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "group": "1_build@1"
+        },
+        {
+          "command": "dotpilot.restoreSolution",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "group": "1_build@2"
+        },
+        {
+          "command": "dotpilot.cleanSolution",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "group": "1_build@3"
+        },
+        {
+          "command": "dotpilot.addVirtualFolder",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "group": "2_add@1"
+        },
+        {
+          "command": "dotpilot.applyRecommendedSettings",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/",
+          "group": "3_misc@1"
+        },
+        {
+          "command": "dotpilot.showSdkInfo",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/",
+          "group": "3_misc@2"
+        },
+        {
+          "command": "dotpilot.newProject",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "group": "2_add@0"
+        },
+        {
+          "command": "dotpilot.restoreDefaultExplorer",
+          "when": "view == dotpilot.solutionExplorer.explorer",
+          "group": "9_layout@1"
+        },
+        {
+          "command": "dotpilot.makeDefaultExplorer",
+          "when": "view == dotpilot.solutionExplorer",
+          "group": "9_layout@1"
+        },
+        {
+          "command": "dotpilot.checkCodingStandards",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "group": "4_standards@1"
+        },
+        {
+          "command": "dotpilot.fixCodingStandards",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "group": "4_standards@2"
+        },
+        {
+          "command": "dotpilot.configureCodingStandards",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "group": "4_standards@3"
+        },
+        {
+          "command": "dotpilot.manageNuGetPackages",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && dotpilot.solutionLoaded",
+          "group": "2_add@5"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dotpilot.openSolution",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "group": "1_solution@1"
+        },
+        {
+          "command": "dotpilot.refresh",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "group": "1_solution@2"
+        },
+        {
+          "command": "dotpilot.buildSolution",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "group": "2_build@1"
+        },
+        {
+          "command": "dotpilot.restoreSolution",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "group": "2_build@2"
+        },
+        {
+          "command": "dotpilot.cleanSolution",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "group": "2_build@3"
+        },
+        {
+          "command": "dotpilot.addExistingProject",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution",
+          "group": "3_add@1"
+        },
+        {
+          "command": "dotpilot.addVirtualFolder",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^(solution|virtualFolder)$/",
+          "group": "3_add@2"
+        },
+        {
+          "command": "dotpilot.moveProjectHere",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == virtualFolder",
+          "group": "3_add@3"
+        },
+        {
+          "command": "dotpilot.renameVirtualFolder",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == virtualFolder",
+          "group": "4_edit@1"
+        },
+        {
+          "command": "dotpilot.deleteVirtualFolder",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == virtualFolder",
+          "group": "4_edit@2"
+        },
+        {
+          "command": "dotpilot.openProjectFile",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project/",
+          "group": "1_project@1"
+        },
+        {
+          "command": "dotpilot.buildProject",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project/",
+          "group": "2_build@1"
+        },
+        {
+          "command": "dotpilot.runTests",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project\\.test/",
+          "group": "2_build@2"
+        },
+        {
+          "command": "dotpilot.addProjectReference",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project/",
+          "group": "3_add@1"
+        },
+        {
+          "command": "dotpilot.manageNuGetPackages",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project/",
+          "group": "3_add@2"
+        },
+        {
+          "command": "dotpilot.moveProjectToFolder",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project/",
+          "group": "4_layout@1"
+        },
+        {
+          "command": "dotpilot.removeFromVirtualFolder",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^project.*\\.assigned$/",
+          "group": "4_layout@2"
+        },
+        {
+          "command": "dotpilot.revealInOS",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^(project|file|physicalFolder)/",
+          "group": "9_reveal@1"
+        },
+        {
+          "command": "dotpilot.openFile",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == file",
+          "group": "1_file@1"
+        },
+        {
+          "command": "dotpilot.newProject",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^(solution|virtualFolder)$/",
+          "group": "3_add@0"
+        },
+        {
+          "command": "dotpilot.newItem",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^(project|physicalFolder)/",
+          "group": "3_add@0"
+        },
+        {
+          "command": "dotpilot.checkCodingStandards",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem == solution && config.dotpilot.codingStandards.enabled",
+          "group": "2_build@4"
+        },
+        {
+          "command": "dotpilot.manageNuGetPackages",
+          "when": "view =~ /^dotpilot\\.solutionExplorer/ && viewItem =~ /^dependencyGroup\\.packages$/",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "dotpilot.renameVirtualFolder",
+          "when": "false"
+        },
+        {
+          "command": "dotpilot.deleteVirtualFolder",
+          "when": "false"
+        },
+        {
+          "command": "dotpilot.moveProjectHere",
+          "when": "false"
+        },
+        {
+          "command": "dotpilot.removeFromVirtualFolder",
+          "when": "false"
+        },
+        {
+          "command": "dotpilot.openFile",
+          "when": "false"
+        },
+        {
+          "command": "dotpilot.revealInOS",
+          "when": "false"
+        },
+        {
+          "command": "dotpilot.clearFilter",
+          "when": "dotpilot.filterActive"
+        },
+        {
+          "command": "dotpilot.restoreDefaultExplorer",
+          "when": "config.dotpilot.defaultExplorer"
+        },
+        {
+          "command": "dotpilot.makeDefaultExplorer",
+          "when": "!config.dotpilot.defaultExplorer"
+        },
+        {
+          "command": "dotpilot.renameToStandard",
+          "when": "false"
+        }
+      ]
+    },
+    "themes": [
+      {
+        "label": "DotPilot Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/dotpilot-dark-color-theme.json"
+      },
+      {
+        "label": "DotPilot Light",
+        "uiTheme": "vs",
+        "path": "./themes/dotpilot-light-color-theme.json"
+      }
+    ],
+    "configuration": {
+      "title": "DotPilot",
+      "properties": {
+        "dotpilot.defaultExplorer": {
+          "type": "boolean",
+          "default": true,
+          "order": 0,
+          "markdownDescription": "Use **Solution Explorer** as the default explorer: it appears in VS Code's Explorer sidebar and the built-in Files view is hidden in workspaces that contain a solution.\n\nUncheck to restore VS Code's default Explorer (Solution Explorer moves to the DotPilot icon in the Activity Bar). You can also run [Restore VS Code Default Explorer](command:dotpilot.restoreDefaultExplorer)."
+        },
+        "dotpilot.autoOpenSingleSolution": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically open the solution when the workspace contains exactly one .sln/.slnx file."
+        },
+        "dotpilot.dotnetPath": {
+          "type": "string",
+          "default": "dotnet",
+          "scope": "machine-overridable",
+          "description": "Path to the dotnet executable. Defaults to 'dotnet' on PATH."
+        },
+        "dotpilot.explorer.showPhysicalFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the files and folders of each project directory under the project node."
+        },
+        "dotpilot.explorer.excludedFolders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "bin",
+            "obj",
+            ".vs",
+            ".git",
+            "node_modules"
+          ],
+          "description": "Folder names hidden under project nodes."
+        },
+        "dotpilot.codingStandards.enabled": {
+          "type": "boolean",
+          "default": false,
+          "order": 10,
+          "markdownDescription": "Enforce the coding standards below. When on, DotPilot reports naming violations live in C# files (with rename quick fixes) and writes the rules to the solution's `.editorconfig` so the C# language service, `dotnet format` and builds apply them too. Turning it off removes DotPilot's `.editorconfig` section."
+        },
+        "dotpilot.codingStandards.severity": {
+          "type": "string",
+          "enum": [
+            "suggestion",
+            "warning",
+            "error"
+          ],
+          "default": "warning",
+          "order": 11,
+          "description": "How violations are reported in the editor, .editorconfig and builds."
+        },
+        "dotpilot.codingStandards.writeEditorConfig": {
+          "type": "boolean",
+          "default": true,
+          "order": 12,
+          "markdownDescription": "Write the rules to a managed section of `.editorconfig` beside the solution (content outside the section is preserved)."
+        },
+        "dotpilot.codingStandards.enforceInBuild": {
+          "type": "boolean",
+          "default": false,
+          "order": 13,
+          "markdownDescription": "Pass `-p:EnforceCodeStyleInBuild=true` to DotPilot's Build and Run Tests commands so violations appear as build warnings/errors (with severity `error`, builds fail)."
+        },
+        "dotpilot.codingStandards.naming.types": {
+          "type": "string",
+          "enum": [
+            "PascalCase",
+            "camelCase",
+            "_camelCase",
+            "m_camelCase",
+            "s_camelCase",
+            "snake_case",
+            "UPPER_CASE"
+          ],
+          "default": "PascalCase",
+          "description": "Classes, structs, records, enums and delegates.",
+          "order": 20
+        },
+        "dotpilot.codingStandards.naming.interfacePrefix": {
+          "type": "boolean",
+          "default": true,
+          "order": 21,
+          "markdownDescription": "Interfaces start with `I` (e.g. `IOrderRepository`)."
+        },
+        "dotpilot.codingStandards.naming.typeParameterPrefix": {
+          "type": "boolean",
+          "default": true,
+          "order": 22,
+          "markdownDescription": "Generic type parameters start with `T` (e.g. `TKey`)."
+        },
+        "dotpilot.codingStandards.naming.methods": {
+          "type": "string",
+          "enum": [
+            "PascalCase",
+            "camelCase",
+            "_camelCase",
+            "m_camelCase",
+            "s_camelCase",
+            "snake_case",
+            "UPPER_CASE"
+          ],
+          "default": "PascalCase",
+          "description": "Methods and local functions.",
+          "order": 23
+        },
+        "dotpilot.codingStandards.naming.asyncSuffix": {
+          "type": "boolean",
+          "default": true,
+          "order": 24,
+          "markdownDescription": "`async` methods end with `Async` (`async void` handlers and `Main` are exempt)."
+        },
+        "dotpilot.codingStandards.naming.properties": {
+          "type": "string",
+          "enum": [
+            "PascalCase",
+            "camelCase",
+            "_camelCase",
+            "m_camelCase",
+            "s_camelCase",
+            "snake_case",
+            "UPPER_CASE"
+          ],
+          "default": "PascalCase",
+          "description": "Properties and events.",
+          "order": 25
+        },
+        "dotpilot.codingStandards.naming.publicFields": {
+          "type": "string",
+          "enum": [
+            "PascalCase",
+            "camelCase",
+            "_camelCase",
+            "m_camelCase",
+            "s_camelCase",
+            "snake_case",
+            "UPPER_CASE"
+          ],
+          "default": "PascalCase",
+          "description": "Public, internal and protected fields.",
+          "order": 26
+        },
+        "dotpilot.codingStandards.naming.privateFields": {
+          "type": "string",
+          "enum": [
+            "PascalCase",
+            "camelCase",
+            "_camelCase",
+            "m_camelCase",
+            "s_camelCase",
+            "snake_case",
+            "UPPER_CASE"
+          ],
+          "default": "_camelCase",
+          "description": "Private instance fields.",
+          "order": 27
+        },
+        "dotpilot.codingStandards.naming.privateStaticFields": {
+          "type": "string",
+          "enum": [
+            "PascalCase",
+            "camelCase",
+            "_camelCase",
+            "m_camelCase",
+            "s_camelCase",
+            "snake_case",
+            "UPPER_CASE"
+          ],
+          "default": "s_camelCase",
+          "description": "Private static fields.",
+          "order": 28
+        },
+        "dotpilot.codingStandards.naming.constants": {
+          "type": "string",
+          "enum": [
+            "PascalCase",
+            "camelCase",
+            "_camelCase",
+            "m_camelCase",
+            "s_camelCase",
+            "snake_case",
+            "UPPER_CASE"
+          ],
+          "default": "PascalCase",
+          "description": "Constant fields and locals.",
+          "order": 29
+        },
+        "dotpilot.codingStandards.naming.localsAndParameters": {
+          "type": "string",
+          "enum": [
+            "PascalCase",
+            "camelCase",
+            "_camelCase",
+            "m_camelCase",
+            "s_camelCase",
+            "snake_case",
+            "UPPER_CASE"
+          ],
+          "default": "camelCase",
+          "description": "Local variables and parameters.",
+          "order": 30
+        },
+        "dotpilot.codingStandards.style.var": {
+          "type": "string",
+          "enum": [
+            "whenTypeIsApparent",
+            "always",
+            "never"
+          ],
+          "enumDescriptions": [
+            "Use var only when the type is obvious (var x = new Foo())",
+            "Always use var",
+            "Always use explicit types"
+          ],
+          "default": "whenTypeIsApparent",
+          "order": 40,
+          "description": "Preferred use of 'var' (enforced by the C# language service and dotnet format)."
+        },
+        "dotpilot.codingStandards.style.braces": {
+          "type": "boolean",
+          "default": true,
+          "order": 41,
+          "description": "Require braces for if/else/for/while bodies."
+        },
+        "dotpilot.codingStandards.style.fileScopedNamespaces": {
+          "type": "boolean",
+          "default": true,
+          "order": 42,
+          "markdownDescription": "Prefer file-scoped namespaces (`namespace X;`)."
+        },
+        "dotpilot.codingStandards.style.usingsOutsideNamespace": {
+          "type": "boolean",
+          "default": true,
+          "order": 43,
+          "description": "Place using directives outside the namespace."
+        },
+        "dotpilot.codingStandards.style.predefinedTypes": {
+          "type": "boolean",
+          "default": true,
+          "order": 44,
+          "markdownDescription": "Use `int`/`string` instead of `Int32`/`String`."
+        },
+        "dotpilot.formatter.enabled": {
+          "type": "boolean",
+          "default": true,
+          "order": 50,
+          "markdownDescription": "Provide a C# formatter (Format Document, format on save). If another C# formatter is installed, pick DotPilot with *Format Document With...* \u2192 *Configure Default Formatter*."
+        },
+        "dotpilot.formatter.engine": {
+          "type": "string",
+          "enum": [
+            "dotnet-format",
+            "csharpier"
+          ],
+          "enumDescriptions": [
+            "Built into the .NET SDK; follows .editorconfig (including DotPilot coding standards). Whitespace and indentation only.",
+            "CSharpier, the opinionated \"Prettier\" for C# (install with DotPilot: Install CSharpier). Rewraps and restructures code consistently."
+          ],
+          "default": "dotnet-format",
+          "order": 51,
+          "description": "Formatter used for C# files."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[csharp]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.detectIndentation": false,
+        "editor.bracketPairColorization.enabled": true,
+        "editor.guides.bracketPairs": "active",
+        "editor.guides.bracketPairsHorizontal": "active",
+        "editor.matchBrackets": "always"
+      }
+    },
+    "taskDefinitions": [
+      {
+        "type": "dotpilot",
+        "required": [
+          "label"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "DotPilot command label"
+          },
+          "target": {
+            "type": "string",
+            "description": "Solution or project file"
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "tsc -p ./ --noEmit",
+    "test": "npm run compile && node --test out/test/*.test.js",
+    "test:integration": "npm run compile && node ./out/test/integration/run.js",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "@types/vscode": "~1.95.0",
+    "@vscode/test-electron": "^2.5.2",
+    "typescript": "~5.9.3"
+  }
+}
