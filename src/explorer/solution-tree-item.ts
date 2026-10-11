@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { PackageReference, ProjectInfo, ProjectReference } from '../solution/project-reader';
 import { SolutionModel, SolutionProject } from '../solution/solution-model';
+import { isSdkStyleSqlProject } from '../sql/sql-project';
 import { countProjects, StructureNode } from './tree-builder';
 
 export type DependencyGroup = 'packages' | 'projects' | 'frameworks';
@@ -17,6 +18,8 @@ export type ExplorerNode =
   | { readonly type: 'framework'; readonly project: SolutionProject; readonly name: string }
   | { readonly type: 'physicalFolder'; readonly project: SolutionProject; readonly uri: vscode.Uri }
   | { readonly type: 'file'; readonly uri: vscode.Uri; readonly scope: string }
+  /** The .dacpac a SQL database project builds for the active configuration. */
+  | { readonly type: 'buildOutput'; readonly project: SolutionProject; readonly uri: vscode.Uri; readonly configuration: string; readonly exists: boolean }
   | { readonly type: 'message'; readonly id: string; readonly text: string; readonly icon: string };
 
 // Colors contributed in package.json (`contributes.colors`): themes can define them and users can
@@ -34,6 +37,7 @@ const c = {
   package: color('packageIcon'),
   dependency: color('dependencyIcon'),
   error: color('errorIcon'),
+  sql: color('sqlProjectIcon'),
 };
 
 /** Stable, unique id for every node (suffix distinguishes filtered views so they auto-expand). */
@@ -48,6 +52,7 @@ export function explorerNodeId(node: ExplorerNode, suffix = ''): string {
     case 'framework': return `fwk:${node.project.key}:${node.name}`;
     case 'physicalFolder': return `dir:${node.project.key}:${node.uri.fsPath}`;
     case 'file': return `file:${node.scope}:${node.uri.fsPath}`;
+    case 'buildOutput': return `out:${node.project.key}`;
     case 'message': return `msg:${node.id}`;
   }
 }
@@ -59,16 +64,17 @@ export function projectIcon(project: SolutionProject, info: ProjectInfo | undefi
     case 'csharp': return new vscode.ThemeIcon('symbol-class', c.csharp);
     case 'fsharp': return new vscode.ThemeIcon('symbol-function', c.fsharp);
     case 'vb': return new vscode.ThemeIcon('symbol-module', c.vb);
+    case 'sqlproj': return new vscode.ThemeIcon('database', c.sql);
     default: return new vscode.ThemeIcon('project');
   }
 }
 
 /** e.g. "project.test.startup.assigned"; menus match on these segments (order matters for the regexes). */
-export function projectContextValue(info: ProjectInfo | undefined, assigned: boolean, startup = false): string {
-  return `project${info?.isTestProject ? '.test' : ''}${startup ? '.startup' : ''}${assigned ? '.assigned' : ''}`;
+export function projectContextValue(info: ProjectInfo | undefined, assigned: boolean, startup = false, sql = false): string {
+  return `project${sql ? '.sql' : info?.isTestProject ? '.test' : ''}${startup ? '.startup' : ''}${assigned ? '.assigned' : ''}`;
 }
 
-export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?: ProjectInfo, infoError?: string, startupKey?: string): vscode.TreeItem {
+export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?: ProjectInfo, infoError?: string, startupKey?: string, sqlWarning?: string): vscode.TreeItem {
   const suffix = filterActive ? '#filtered' : '';
   const expandedWhenFiltered = filterActive ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed;
   let item: vscode.TreeItem;
@@ -91,7 +97,7 @@ export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?:
           item = new vscode.TreeItem(s.label, s.children.length ? expandedWhenFiltered : vscode.TreeItemCollapsibleState.None);
           item.iconPath = new vscode.ThemeIcon('folder', c.virtualFolder);
           item.description = describeFolder(s.children);
-          item.tooltip = `Virtual folder "${s.label}" (CodeStudio layout only, no files are moved)`;
+          item.tooltip = `Virtual folder "${s.label}" (CodeXStudio layout only, no files are moved)`;
           item.contextValue = 'virtualFolder';
           break;
         case 'solutionFolder':
@@ -107,7 +113,10 @@ export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?:
           // Highlighted (bold) label marks the startup project, as in Visual Studio.
           item = new vscode.TreeItem(isStartup ? { label: p.name, highlights: [[0, p.name.length]] } : p.name, vscode.TreeItemCollapsibleState.Collapsed);
           item.iconPath = infoError ? new vscode.ThemeIcon('warning', c.error) : projectIcon(p, info);
-          const tfm = infoError ? 'unavailable' : info?.targetFrameworks.join('; ');
+          const sql = p.kind === 'sqlproj';
+          const tfm = infoError ? 'unavailable'
+            : sql ? (isSdkStyleSqlProject(info?.sdk) ? 'SQL database' : 'SQL database (legacy)')
+            : info?.targetFrameworks.join('; ');
           item.description = isStartup ? ['startup', tfm].filter(Boolean).join(' · ') : tfm;
           const tip = new vscode.MarkdownString();
           tip.appendMarkdown(`**${p.name}**\n\n`).appendText(p.absolutePath);
@@ -117,7 +126,8 @@ export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?:
           item.resourceUri = vscode.Uri.file(p.absolutePath);
           if (isStartup) tip.appendMarkdown('\n\n$(play) **Startup project**');
           tip.supportThemeIcons = true;
-          item.contextValue = projectContextValue(info, s.assignedFolderId !== undefined, isStartup);
+          if (sqlWarning) tip.appendMarkdown('\n\n$(warning) ').appendText(sqlWarning);
+          item.contextValue = projectContextValue(info, s.assignedFolderId !== undefined, isStartup, sql);
           break;
         }
         case 'solutionItem':
@@ -177,6 +187,16 @@ export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?:
       item.iconPath = vscode.ThemeIcon.File;
       item.command = { command: 'vscode.open', title: 'Open', arguments: [node.uri] };
       item.contextValue = 'file';
+      break;
+    case 'buildOutput':
+      item = new vscode.TreeItem(path.basename(node.uri.fsPath), vscode.TreeItemCollapsibleState.None);
+      item.resourceUri = node.uri;
+      item.iconPath = new vscode.ThemeIcon('file-binary', c.sql);
+      item.description = node.exists ? `bin/${node.configuration}` : `not built (${node.configuration})`;
+      item.tooltip = node.exists
+        ? `Build output for ${node.configuration}: ${node.uri.fsPath}`
+        : `Build the project to create ${node.uri.fsPath}`;
+      item.contextValue = node.exists ? 'dacpac' : 'dacpac.missing';
       break;
     case 'message':
       item = new vscode.TreeItem(node.text, vscode.TreeItemCollapsibleState.None);

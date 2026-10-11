@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { BuildConfiguration, DEFAULT_CONFIGURATIONS, isValidConfigurationName, parseConfigurationKey, uniqueConfigurations } from './build-configuration';
 import {
   normalizeRelativePath,
   projectKindFromPath,
@@ -58,9 +59,10 @@ export function parseSln(text: string, solutionPath: string): SolutionModel {
   interface RawEntry { typeGuid: string; name: string; path: string; guid: string; items: string[] }
   const entries: RawEntry[] = [];
   const nesting = new Map<string, string>();
+  const configurations: BuildConfiguration[] = [];
 
   let current: RawEntry | undefined;
-  let section: 'solutionItems' | 'nested' | 'other' | undefined;
+  let section: 'solutionItems' | 'nested' | 'configurations' | 'other' | undefined;
 
   for (let i = firstContent + 1; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -90,7 +92,9 @@ export function parseSln(text: string, solutionPath: string): SolutionModel {
       continue;
     }
     if (line.startsWith('GlobalSection(')) {
-      section = line.startsWith('GlobalSection(NestedProjects)') ? 'nested' : 'other';
+      section = line.startsWith('GlobalSection(NestedProjects)') ? 'nested'
+        : line.startsWith('GlobalSection(SolutionConfigurationPlatforms)') ? 'configurations'
+        : 'other';
       continue;
     }
     if (line === 'Global' || line === 'EndGlobal') continue;
@@ -102,8 +106,13 @@ export function parseSln(text: string, solutionPath: string): SolutionModel {
       const m = NESTED_RE.exec(line);
       if (!m) throw new SolutionParseError(`Malformed NestedProjects entry: ${line}`, lineNo);
       nesting.set(m[1].toUpperCase(), m[2].toUpperCase());
+    } else if (section === 'configurations') {
+      // "Debug|Any CPU = Debug|Any CPU": the left-hand side is the solution configuration.
+      const config = parseConfigurationKey(line.split('=')[0]);
+      if (config) configurations.push(config);
+      else warnings.push(`Ignored unrecognized solution configuration "${line}".`);
     }
-    // Other sections (configurations, properties, extensibility) are intentionally ignored.
+    // Other sections (project configuration mappings, properties, extensibility) are intentionally ignored.
   }
   if (current) throw new SolutionParseError(`Project "${current.name}" is missing EndProject`);
 
@@ -143,7 +152,8 @@ export function parseSln(text: string, solutionPath: string): SolutionModel {
   }
 
   breakFolderCycles(folders, warnings);
-  return { format: 'sln', ...base, projects, folders, warnings };
+  const unique = uniqueConfigurations(configurations);
+  return { format: 'sln', ...base, projects, folders, configurations: unique.length ? unique : [...DEFAULT_CONFIGURATIONS], warnings };
 }
 
 /** A malformed NestedProjects section can create cycles; detach them so the tree stays finite. */
@@ -210,6 +220,8 @@ export function parseSlnx(text: string, solutionPath: string): SolutionModel {
     return folderPath;
   };
 
+  const buildTypes: string[] = [];
+  const platforms: string[] = [];
   const stack: string[] = [];
   let currentFolder: string | undefined;
   let sawRoot = false;
@@ -282,8 +294,11 @@ export function parseSlnx(text: string, solutionPath: string): SolutionModel {
       });
     } else if (tag === 'File' && parent === 'Folder' && currentFolder) {
       if (attrs.Path) folders.get(currentFolder)!.files.push(toAbsolute(base.directory, attrs.Path));
+    } else if ((tag === 'BuildType' || tag === 'Platform') && parent === 'Configurations' && attrs.Name !== undefined) {
+      if (isValidConfigurationName(attrs.Name)) (tag === 'BuildType' ? buildTypes : platforms).push(attrs.Name);
+      else warnings.push(`Ignored invalid ${tag} name "${attrs.Name}".`);
     }
-    // Other elements (Configurations, BuildType, Platform, Properties, ...) are ignored but must still be well-formed.
+    // Other elements (project-level BuildType/Platform mappings, Properties, ...) are ignored but must still be well-formed.
 
     if (!selfClosing) stack.push(tag);
   }
@@ -291,5 +306,10 @@ export function parseSlnx(text: string, solutionPath: string): SolutionModel {
   if (!sawRoot) throw new SolutionParseError('Empty .slnx file: no <Solution> element');
   if (stack.length > 0) throw new SolutionParseError(`Unclosed element <${stack[stack.length - 1]}>`);
 
-  return { format: 'slnx', ...base, projects, folders: [...folders.values()], warnings };
+  // .slnx lists build types and platforms separately; the solution configurations are every combination.
+  // Missing lists fall back to the SDK defaults (Debug, Release / Any CPU).
+  const types = buildTypes.length ? buildTypes : ['Debug', 'Release'];
+  const plats = platforms.length ? platforms : [DEFAULT_CONFIGURATIONS[0].platform];
+  const configurations = uniqueConfigurations(types.flatMap(configuration => plats.map(platform => ({ configuration, platform }))));
+  return { format: 'slnx', ...base, projects, folders: [...folders.values()], configurations, warnings };
 }

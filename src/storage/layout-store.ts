@@ -1,9 +1,10 @@
 import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { parseConfigurationKey } from '../solution/build-configuration';
 
 /**
- * CodeStudio's virtual solution layout. Virtual folders only exist in this metadata:
+ * CodeXStudio's virtual solution layout. Virtual folders only exist in this metadata:
  * they never move files on disk and never modify the solution file.
  */
 export interface VirtualFolder {
@@ -20,6 +21,8 @@ export interface SolutionLayout {
   readonly assignments: Readonly<Record<string, string>>;
   /** Project key of the startup project (Run / Debug target), if one is set. */
   readonly startupProject?: string;
+  /** Active build configuration as "Configuration|Platform", e.g. "Release|Any CPU". */
+  readonly activeConfiguration?: string;
 }
 
 export const EMPTY_LAYOUT: SolutionLayout = Object.freeze({ version: 1, folders: [], assignments: {} });
@@ -122,7 +125,14 @@ export function validateLayout(data: unknown, source: string): SolutionLayout {
   }
   const startup = obj.startupProject;
   if (startup !== undefined && (typeof startup !== 'string' || startup === '')) return fail('"startupProject" must be a project path string');
-  return startup === undefined ? { version: 1, folders, assignments } : { version: 1, folders, assignments, startupProject: startup };
+  const active = obj.activeConfiguration;
+  if (active !== undefined && (typeof active !== 'string' || !parseConfigurationKey(active))) {
+    return fail('"activeConfiguration" must look like "Debug|Any CPU"');
+  }
+  const layout: { -readonly [K in keyof SolutionLayout]: SolutionLayout[K] } = { version: 1, folders, assignments };
+  if (startup !== undefined) layout.startupProject = startup;
+  if (active !== undefined) layout.activeConfiguration = active;
+  return layout;
 }
 
 function hasCycle(folders: readonly VirtualFolder[]): boolean {
@@ -238,6 +248,13 @@ export function assignProject(layout: SolutionLayout, projectKey: string, folder
 export function setStartupProject(layout: SolutionLayout, projectKey: string | undefined): SolutionLayout {
   const { startupProject: _previous, ...rest } = layout;
   return projectKey === undefined ? rest : { ...rest, startupProject: projectKey };
+}
+
+/** Sets the active build configuration ("Debug|Any CPU"), or clears it when undefined. */
+export function setActiveConfiguration(layout: SolutionLayout, key: string | undefined): SolutionLayout {
+  if (key !== undefined && !parseConfigurationKey(key)) throw new LayoutError(`"${key}" is not a valid build configuration.`);
+  const { activeConfiguration: _previous, ...rest } = layout;
+  return key === undefined ? rest : { ...rest, activeConfiguration: key };
 }
 
 /** Full display path of a folder, e.g. "Backend / Services". */

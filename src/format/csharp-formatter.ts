@@ -18,7 +18,7 @@ function formatterConfig() {
 
 export class CSharpierMissingError extends Error {
   constructor() {
-    super('CSharpier is not installed. Run "CodeStudio: Install CSharpier" or switch "codestudio.formatter.engine" to dotnet-format.');
+    super('CSharpier is not installed. Run "CodeXStudio: Install CSharpier" or switch "codestudio.formatter.engine" to dotnet-format.');
     this.name = 'CSharpierMissingError';
   }
 }
@@ -62,7 +62,7 @@ export class CSharpFormatter implements vscode.DocumentFormattingEditProvider, v
     } catch (err) {
       this.logger.error(`Formatting ${doc.fileName} failed`, err);
       const actions = err instanceof CSharpierMissingError ? ['Install CSharpier', 'Use dotnet format'] : ['Show Log'];
-      void vscode.window.showErrorMessage(`CodeStudio: Formatting failed. ${(err as Error).message}`, ...actions).then(choice => {
+      void vscode.window.showErrorMessage(`CodeXStudio: Formatting failed. ${(err as Error).message}`, ...actions).then(choice => {
         if (choice === 'Install CSharpier') void vscode.commands.executeCommand('codestudio.installCSharpier');
         else if (choice === 'Use dotnet format') void vscode.workspace.getConfiguration('codestudio.formatter').update('engine', 'dotnet-format', vscode.ConfigurationTarget.Global);
         else if (choice === 'Show Log') this.logger.show();

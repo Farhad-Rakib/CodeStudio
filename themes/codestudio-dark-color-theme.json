@@ -1,6 +1,6 @@
 {
   "$schema": "vscode://schemas/color-theme",
-  "name": "CodeStudio Dark",
+  "name": "CodeXStudio Dark",
   "type": "dark",
   "semanticHighlighting": true,
   "colors": {
@@ -80,6 +80,7 @@
     "codestudio.csharpProjectIcon": "#9B7BEA",
     "codestudio.fsharpProjectIcon": "#56B6C2",
     "codestudio.vbProjectIcon": "#75BEFF",
+    "codestudio.sqlProjectIcon": "#E2A45C",
     "codestudio.webProjectIcon": "#4FA3FF",
     "codestudio.testProjectIcon": "#6CC24A",
     "codestudio.packageIcon": "#4FA3FF",

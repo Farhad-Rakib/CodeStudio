@@ -9,7 +9,7 @@ import { CodingStandards, readStandards } from './standards-config';
 
 const SECTION = 'codestudio.codingStandards';
 const DIAGNOSTIC_CODE = 'DP1006';
-const CREATED_KEY = 'codestudio.editorconfigCreatedByCodeStudio';
+const CREATED_KEY = 'codestudio.editorconfigCreatedByCodeXStudio';
 const NOTIFIED_KEY = 'codestudio.editorconfigNotified';
 const MAX_LINT_SIZE = 1024 * 1024;
 
@@ -43,7 +43,7 @@ function shouldLint(doc: vscode.TextDocument): boolean {
 }
 
 /**
- * Enforces CodeStudio coding standards when `codestudio.codingStandards.enabled` is on:
+ * Enforces CodeXStudio coding standards when `codestudio.codingStandards.enabled` is on:
  * live naming diagnostics with rename quick fixes, and a managed .editorconfig section
  * beside the solution so Roslyn, `dotnet format` and the build apply the same rules.
  */
@@ -112,7 +112,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
     this.diagnostics.set(doc.uri, found.map(v => {
       const range = new vscode.Range(doc.positionAt(v.offset), doc.positionAt(v.offset + v.length));
       const d = new vscode.Diagnostic(range, v.message, severity);
-      d.source = 'CodeStudio';
+      d.source = 'CodeXStudio';
       d.code = DIAGNOSTIC_CODE;
       this.violations.set(d, v);
       return d;
@@ -156,7 +156,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
     }
     if (!renameRange) {
       void vscode.window.showWarningMessage(
-        `CodeStudio: Renaming '${oldName}' safely needs a C# language extension (it may be used in other files). Install one, then use F2 (Rename Symbol).`,
+        `CodeXStudio: Renaming '${oldName}' safely needs a C# language extension (it may be used in other files). Install one, then use F2 (Rename Symbol).`,
       );
       return false;
     }
@@ -178,7 +178,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
   syncEditorConfig(): Promise<void> {
     this.syncChain = this.syncChain.then(() => this.doSync()).catch(err => {
       this.logger.error('Updating .editorconfig failed', err);
-      void vscode.window.showErrorMessage(`CodeStudio: Could not update .editorconfig. ${(err as Error).message}`);
+      void vscode.window.showErrorMessage(`CodeXStudio: Could not update .editorconfig. ${(err as Error).message}`);
     });
     return this.syncChain;
   }
@@ -200,7 +200,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
       if (next === existing) return;
       await fs.writeFile(file, next, 'utf8');
       if (existing === undefined) await this.workspaceState.update(CREATED_KEY, file);
-      this.logger.info(`Wrote CodeStudio coding standards to ${file}.`);
+      this.logger.info(`Wrote CodeXStudio coding standards to ${file}.`);
       this.notifyWritten(file);
     } else if (existing !== undefined && hasSection(existing)) {
       const rest = removeSection(existing);
@@ -208,10 +208,10 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
       if (rest === '' || (createdByUs && isOnlyRootLine(rest))) {
         await fs.unlink(file);
         await this.workspaceState.update(CREATED_KEY, undefined);
-        this.logger.info(`Removed ${file} (it only contained CodeStudio coding standards).`);
+        this.logger.info(`Removed ${file} (it only contained CodeXStudio coding standards).`);
       } else {
         await fs.writeFile(file, rest, 'utf8');
-        this.logger.info(`Removed the CodeStudio coding standards section from ${file}.`);
+        this.logger.info(`Removed the CodeXStudio coding standards section from ${file}.`);
       }
     }
   }
@@ -221,7 +221,7 @@ export class StandardsController implements vscode.Disposable, vscode.CodeAction
     void this.workspaceState.update(NOTIFIED_KEY, true);
     void vscode.window
       .showInformationMessage(
-        `CodeStudio: Coding standards were written to ${vscode.workspace.asRelativePath(file)} so the C# language service, dotnet format and builds enforce them too.`,
+        `CodeXStudio: Coding standards were written to ${vscode.workspace.asRelativePath(file)} so the C# language service, dotnet format and builds enforce them too.`,
         'Open .editorconfig',
       )
       .then(choice => {

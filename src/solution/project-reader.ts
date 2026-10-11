@@ -37,14 +37,19 @@ function element(text: string, name: string): string | undefined {
 }
 
 /**
- * Lightweight, read-only extraction of the items CodeStudio displays. This is not an
+ * Lightweight, read-only extraction of the items CodeXStudio displays. This is not an
  * MSBuild evaluator: conditions, imports and Directory.Build.props are not applied.
  */
 export function parseProjectXml(xml: string, projectPath: string): ProjectInfo {
   const text = xml.replace(/<!--[\s\S]*?-->/g, '');
   const projectDir = path.dirname(projectPath);
 
-  const sdk = attr(/<Project\b[^>]*>/i.exec(text)?.[0] ?? '', 'Sdk');
+  // <Project Sdk="Name/Version">, or the <Sdk Name="..." Version="..." /> element form.
+  const sdkElement = /<Sdk\b[^>]*>/i.exec(text)?.[0];
+  const sdkElementName = sdkElement ? attr(sdkElement, 'Name') : undefined;
+  const sdkElementVersion = sdkElement ? attr(sdkElement, 'Version') : undefined;
+  const sdk = attr(/<Project\b[^>]*>/i.exec(text)?.[0] ?? '', 'Sdk')
+    ?? (sdkElementName ? (sdkElementVersion ? `${sdkElementName}/${sdkElementVersion}` : sdkElementName) : undefined);
   const tfms = element(text, 'TargetFrameworks') ?? element(text, 'TargetFramework') ?? '';
   const targetFrameworks = tfms.split(';').map(s => s.trim()).filter(Boolean);
   const outputType = element(text, 'OutputType');

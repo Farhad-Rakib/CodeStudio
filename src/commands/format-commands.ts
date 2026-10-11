@@ -33,7 +33,7 @@ export function registerFormatCommands(ctx: CommandContext): void {
       }
     });
     await vscode.workspace.getConfiguration('codestudio.formatter').update('engine', 'csharpier', vscode.ConfigurationTarget.Workspace);
-    void vscode.window.showInformationMessage('CodeStudio: CSharpier installed and selected as the C# formatter.');
+    void vscode.window.showInformationMessage('CodeXStudio: CSharpier installed and selected as the C# formatter.');
   });
 
   registerCommand(ctx, 'codestudio.formatDocument', 'Format Document', async () => {

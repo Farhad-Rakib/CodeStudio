@@ -33,7 +33,7 @@ export function registerFolderCommands(ctx: CommandContext): void {
     const parent = virtualFolderOf(node);
     const name = await vscode.window.showInputBox({
       title: parent ? `New virtual folder in "${parent.name}"` : 'New virtual folder',
-      prompt: 'Virtual folders organize projects in CodeStudio only; nothing moves on disk.',
+      prompt: 'Virtual folders organize projects in CodeXStudio only; nothing moves on disk.',
       value: 'New Folder',
       validateInput: v => {
         const err = validateFolderName(v);

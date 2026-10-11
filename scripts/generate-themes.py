@@ -1,11 +1,11 @@
-"""Generates the CodeStudio color themes from one palette definition.
+"""Generates the CodeXStudio color themes from one palette definition.
 
 Run: python3 scripts/generate-themes.py
 """
 import json, pathlib
 
 DARK = dict(
-    name="CodeStudio Dark", type="dark",
+    name="CodeXStudio Dark", type="dark",
     bg="#1E1E1E", bg_alt="#252526", bg_deep="#181818", bg_hover="#2D2D30", border="#3F3F46", border_soft="#333337",
     fg="#DCDCDC", fg_muted="#A0A0A0", fg_faint="#6E6E6E", accent="#7C5CD6", accent_fg="#FFFFFF", accent_soft="#7C5CD640",
     sel="#264F78", sel_inactive="#3A3D41", line="#2A2A2E", find="#9E6A03AA", find_other="#623315AA", link="#4FA3FF",
@@ -20,7 +20,7 @@ DARK = dict(
           "#808080","#FF6E6E","#8EE06E","#F2D27B","#7DBBFF","#DDA6F2","#70E0C8","#FFFFFF"],
 )
 LIGHT = dict(
-    name="CodeStudio Light", type="light",
+    name="CodeXStudio Light", type="light",
     bg="#FFFFFF", bg_alt="#F5F5F7", bg_deep="#EEEEF2", bg_hover="#E6E6EC", border="#CCCEDB", border_soft="#DDDDE3",
     fg="#1E1E1E", fg_muted="#5A5A5A", fg_faint="#9A9A9A", accent="#5B3FB0", accent_fg="#FFFFFF", accent_soft="#5B3FB030",
     sel="#ADD6FF", sel_inactive="#E5EBF1", line="#F3F3F8", find="#F8C9AB", find_other="#FFE6A3", link="#0060C0",
@@ -54,10 +54,10 @@ def bracket_colors(p):
 # Solution Explorer icon colors (ids contributed in package.json `contributes.colors`).
 EXPLORER = {
     "dark": {"solutionIcon": "#B180D7", "solutionFolderIcon": "#DCB67A", "virtualFolderIcon": "#E8C46A", "csharpProjectIcon": "#9B7BEA",
-             "fsharpProjectIcon": "#56B6C2", "vbProjectIcon": "#75BEFF", "webProjectIcon": "#4FA3FF", "testProjectIcon": "#6CC24A",
+             "fsharpProjectIcon": "#56B6C2", "vbProjectIcon": "#75BEFF", "sqlProjectIcon": "#E2A45C", "webProjectIcon": "#4FA3FF", "testProjectIcon": "#6CC24A",
              "packageIcon": "#4FA3FF", "dependencyIcon": "#A0A0A0", "errorIcon": "#F14C4C"},
     "light": {"solutionIcon": "#652D90", "solutionFolderIcon": "#B8862B", "virtualFolderIcon": "#C28A00", "csharpProjectIcon": "#5B3FB0",
-              "fsharpProjectIcon": "#0E7C86", "vbProjectIcon": "#1A73C9", "webProjectIcon": "#0060C0", "testProjectIcon": "#2E8B22",
+              "fsharpProjectIcon": "#0E7C86", "vbProjectIcon": "#1A73C9", "sqlProjectIcon": "#A65E00", "webProjectIcon": "#0060C0", "testProjectIcon": "#2E8B22",
               "packageIcon": "#0060C0", "dependencyIcon": "#616161", "errorIcon": "#D42020"},
 }
 

@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import { Logger } from '../logger';
 import { detectSdk, SdkInfo } from './sdk-detection';
 
-const TASK_SOURCE = 'CodeStudio';
+const TASK_SOURCE = 'CodeXStudio';
 
 /** Runs dotnet as a VS Code task (visible terminal, $msCompile problem matcher) or captured process. */
 export class DotnetRunner {

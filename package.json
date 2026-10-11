@@ -1,8 +1,9 @@
 {
   "name": "codeXstudio",
-  "displayName": "codeXstudio - vscode dev assistant for .NET",
+  "displayName": "CodeXStudio - .NET Dev Assistant",
   "description": "A Visual Studio-inspired Solution Explorer, virtual solution folders, .NET CLI commands and themes for VS Code.",
   "version": "0.1.0",
+  "preview": true,
   "publisher": "fhasancse",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -12,12 +13,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Farhad-Rakib/codeStudio.git"
+    "url": "https://github.com/Farhad-Rakib/CodeXStudio.git"
   },
   "bugs": {
-    "url": "https://github.com/Farhad-Rakib/codeStudio/issues"
+    "url": "https://github.com/Farhad-Rakib/CodeXStudio/issues"
   },
-  "homepage": "https://github.com/Farhad-Rakib/codeStudio#readme",
+  "homepage": "https://github.com/Farhad-Rakib/CodeXStudio#readme",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -45,7 +46,7 @@
       "activitybar": [
         {
           "id": "codestudio",
-          "title": "CodeStudio",
+          "title": "CodeXStudio",
           "icon": "resources/codestudio.svg"
         }
       ]
@@ -71,12 +72,12 @@
     "viewsWelcome": [
       {
         "view": "codestudio.solutionExplorer",
-        "contents": "No solution is open.\n[Open Solution](command:codestudio.openSolution)\nCodeStudio looks for .sln and .slnx files in the current workspace.",
+        "contents": "No solution is open.\n[Open Solution](command:codestudio.openSolution)\nCodeXStudio looks for .sln and .slnx files in the current workspace.",
         "when": "!codestudio.solutionLoaded"
       },
       {
         "view": "codestudio.solutionExplorer.explorer",
-        "contents": "No solution is open.\n[Open Solution](command:codestudio.openSolution)\nCodeStudio looks for .sln and .slnx files in the current workspace.",
+        "contents": "No solution is open.\n[Open Solution](command:codestudio.openSolution)\nCodeXStudio looks for .sln and .slnx files in the current workspace.",
         "when": "!codestudio.solutionLoaded"
       }
     ],
@@ -84,201 +85,223 @@
       {
         "command": "codestudio.openSolution",
         "title": "Open Solution",
-        "category": "CodeStudio",
+        "category": "CodeXStudio",
         "icon": "$(folder-opened)"
       },
       {
         "command": "codestudio.refresh",
         "title": "Refresh",
-        "category": "CodeStudio",
+        "category": "CodeXStudio",
         "icon": "$(refresh)"
       },
       {
         "command": "codestudio.filter",
         "title": "Search Solution Explorer",
-        "category": "CodeStudio",
+        "category": "CodeXStudio",
         "icon": "$(filter)"
       },
       {
         "command": "codestudio.clearFilter",
         "title": "Clear Search",
-        "category": "CodeStudio",
+        "category": "CodeXStudio",
         "icon": "$(clear-all)"
       },
       {
         "command": "codestudio.buildSolution",
         "title": "Build Solution",
-        "category": "CodeStudio",
+        "category": "CodeXStudio",
         "icon": "$(tools)"
       },
       {
         "command": "codestudio.restoreSolution",
         "title": "Restore Solution",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.selectConfiguration",
+        "title": "Select Build Configuration...",
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.cleanSolution",
         "title": "Clean Solution",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.addExistingProject",
         "title": "Add Existing Project...",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.addVirtualFolder",
         "title": "Add Virtual Folder",
-        "category": "CodeStudio",
+        "category": "CodeXStudio",
         "icon": "$(new-folder)"
       },
       {
         "command": "codestudio.renameVirtualFolder",
         "title": "Rename",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.deleteVirtualFolder",
         "title": "Delete",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.moveProjectHere",
         "title": "Move Project Here...",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.moveProjectToFolder",
         "title": "Move to Virtual Folder...",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.removeFromVirtualFolder",
         "title": "Remove from Virtual Folder",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.openProjectFile",
         "title": "Open Project File",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.buildProject",
         "title": "Build Project",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.addProjectReference",
         "title": "Add Project Reference...",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.manageNuGetPackages",
         "title": "Manage NuGet Packages...",
-        "category": "CodeStudio",
+        "category": "CodeXStudio",
         "icon": "$(package)"
       },
       {
         "command": "codestudio.runTests",
         "title": "Run Tests",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.publishSqlProject",
+        "title": "Publish...",
+        "category": "CodeXStudio",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "codestudio.schemaCompareSqlProject",
+        "title": "Schema Compare...",
+        "category": "CodeXStudio",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "codestudio.deployDacpac",
+        "title": "Deploy DACPAC...",
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.openFile",
         "title": "Open",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.revealInOS",
         "title": "Reveal in File Explorer",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.applyRecommendedSettings",
         "title": "Apply Recommended Settings...",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.showSdkInfo",
         "title": "Show .NET SDK Info",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.showLog",
         "title": "Show Log",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.newProject",
         "title": "New Project...",
-        "category": "CodeStudio",
+        "category": "CodeXStudio",
         "icon": "$(new-file)"
       },
       {
         "command": "codestudio.newItem",
         "title": "New Item...",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.restoreDefaultExplorer",
         "title": "Restore VS Code Default Explorer",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.makeDefaultExplorer",
         "title": "Make Solution Explorer the Default Explorer",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.configureCodingStandards",
         "title": "Configure Coding Standards...",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.checkCodingStandards",
         "title": "Check Coding Standards",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.fixCodingStandards",
         "title": "Fix Coding Standards...",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.renameToStandard",
         "title": "Rename to Coding Standard",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.installCSharpier",
         "title": "Install CSharpier (C# Prettier)...",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.setStartupProject",
         "title": "Set as Startup Project",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.clearStartupProject",
         "title": "Clear Startup Project",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.selectStartupProject",
         "title": "Configure Startup Project...",
-        "category": "CodeStudio"
+        "category": "CodeXStudio"
       },
       {
         "command": "codestudio.runStartupProject",
         "title": "Start Without Debugging",
-        "category": "CodeStudio",
+        "category": "CodeXStudio",
         "icon": "$(run)"
       },
       {
         "command": "codestudio.debugStartupProject",
         "title": "Start Debugging",
-        "category": "CodeStudio",
+        "category": "CodeXStudio",
         "icon": "$(debug-alt)"
       }
     ],
@@ -453,7 +476,7 @@
         },
         {
           "command": "codestudio.manageNuGetPackages",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project(?!\\.sql)/",
           "group": "3_add@2"
         },
         {
@@ -468,7 +491,7 @@
         },
         {
           "command": "codestudio.revealInOS",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project|file|physicalFolder)/",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project|file|physicalFolder|dacpac$)/",
           "group": "9_reveal@1"
         },
         {
@@ -483,7 +506,7 @@
         },
         {
           "command": "codestudio.newItem",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project|physicalFolder)/",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project(?!\\.sql)|physicalFolder)/",
           "group": "3_add@0"
         },
         {
@@ -498,7 +521,7 @@
         },
         {
           "command": "codestudio.setStartupProject",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project(?!.*\\.startup)/",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project(?!\\.sql)(?!.*\\.startup)/",
           "group": "0_startup@1"
         },
         {
@@ -508,12 +531,12 @@
         },
         {
           "command": "codestudio.debugStartupProject",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project(?!\\.sql)/",
           "group": "0_startup@2"
         },
         {
           "command": "codestudio.runStartupProject",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project(?!\\.sql)/",
           "group": "0_startup@3"
         },
         {
@@ -522,9 +545,29 @@
           "group": "1_solution@3"
         },
         {
+          "command": "codestudio.selectConfiguration",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution",
+          "group": "1_solution@4"
+        },
+        {
           "command": "codestudio.runStartupProject",
           "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project.*\\.startup/",
           "group": "inline@1"
+        },
+        {
+          "command": "codestudio.publishSqlProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project\\.sql/",
+          "group": "2_build@3"
+        },
+        {
+          "command": "codestudio.schemaCompareSqlProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project\\.sql/",
+          "group": "2_build@4"
+        },
+        {
+          "command": "codestudio.deployDacpac",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == dacpac",
+          "group": "1_dacpac@1"
         }
       ],
       "commandPalette": [
@@ -576,24 +619,24 @@
     },
     "themes": [
       {
-        "label": "CodeStudio Dark",
+        "label": "CodeXStudio Dark",
         "uiTheme": "vs-dark",
         "path": "./themes/codestudio-dark-color-theme.json"
       },
       {
-        "label": "CodeStudio Light",
+        "label": "CodeXStudio Light",
         "uiTheme": "vs",
         "path": "./themes/codestudio-light-color-theme.json"
       }
     ],
     "configuration": {
-      "title": "CodeStudio",
+      "title": "CodeXStudio",
       "properties": {
         "codestudio.defaultExplorer": {
           "type": "boolean",
           "default": true,
           "order": 0,
-          "markdownDescription": "Use **Solution Explorer** as the default explorer: it appears in VS Code's Explorer sidebar and the built-in Files view is hidden in workspaces that contain a solution.\n\nUncheck to restore VS Code's default Explorer (Solution Explorer moves to the CodeStudio icon in the Activity Bar). You can also run [Restore VS Code Default Explorer](command:codestudio.restoreDefaultExplorer)."
+          "markdownDescription": "Use **Solution Explorer** as the default explorer: it appears in VS Code's Explorer sidebar and the built-in Files view is hidden in workspaces that contain a solution.\n\nUncheck to restore VS Code's default Explorer (Solution Explorer moves to the CodeXStudio icon in the Activity Bar). You can also run [Restore VS Code Default Explorer](command:codestudio.restoreDefaultExplorer)."
         },
         "codestudio.autoOpenSingleSolution": {
           "type": "boolean",
@@ -629,7 +672,7 @@
           "type": "boolean",
           "default": false,
           "order": 10,
-          "markdownDescription": "Enforce the coding standards below. When on, CodeStudio reports naming violations live in C# files (with rename quick fixes) and writes the rules to the solution's `.editorconfig` so the C# language service, `dotnet format` and builds apply them too. Turning it off removes CodeStudio's `.editorconfig` section."
+          "markdownDescription": "Enforce the coding standards below. When on, CodeXStudio reports naming violations live in C# files (with rename quick fixes) and writes the rules to the solution's `.editorconfig` so the C# language service, `dotnet format` and builds apply them too. Turning it off removes CodeXStudio's `.editorconfig` section."
         },
         "codestudio.codingStandards.severity": {
           "type": "string",
@@ -652,7 +695,7 @@
           "type": "boolean",
           "default": false,
           "order": 13,
-          "markdownDescription": "Pass `-p:EnforceCodeStyleInBuild=true` to CodeStudio's Build and Run Tests commands so violations appear as build warnings/errors (with severity `error`, builds fail)."
+          "markdownDescription": "Pass `-p:EnforceCodeStyleInBuild=true` to CodeXStudio's Build and Run Tests commands so violations appear as build warnings/errors (with severity `error`, builds fail)."
         },
         "codestudio.codingStandards.naming.types": {
           "type": "string",
@@ -836,7 +879,7 @@
           "type": "boolean",
           "default": true,
           "order": 50,
-          "markdownDescription": "Provide a C# formatter (Format Document, format on save). If another C# formatter is installed, pick CodeStudio with *Format Document With...* \u2192 *Configure Default Formatter*."
+          "markdownDescription": "Provide a C# formatter (Format Document, format on save). If another C# formatter is installed, pick CodeXStudio with *Format Document With...* → *Configure Default Formatter*."
         },
         "codestudio.formatter.engine": {
           "type": "string",
@@ -845,8 +888,8 @@
             "csharpier"
           ],
           "enumDescriptions": [
-            "Built into the .NET SDK; follows .editorconfig (including CodeStudio coding standards). Whitespace and indentation only.",
-            "CSharpier, the opinionated \"Prettier\" for C# (install with CodeStudio: Install CSharpier). Rewraps and restructures code consistently."
+            "Built into the .NET SDK; follows .editorconfig (including CodeXStudio coding standards). Whitespace and indentation only.",
+            "CSharpier, the opinionated \"Prettier\" for C# (install with CodeXStudio: Install CSharpier). Rewraps and restructures code consistently."
           ],
           "default": "dotnet-format",
           "order": 51,
@@ -874,7 +917,7 @@
         "properties": {
           "label": {
             "type": "string",
-            "description": "CodeStudio command label"
+            "description": "CodeXStudio command label"
           },
           "target": {
             "type": "string",
@@ -919,7 +962,7 @@
       },
       {
         "id": "codestudio.virtualFolderIcon",
-        "description": "Solution Explorer: CodeStudio virtual folder icon.",
+        "description": "Solution Explorer: CodeXStudio virtual folder icon.",
         "defaults": {
           "dark": "#E8C46A",
           "light": "#C28A00",
@@ -955,6 +998,16 @@
           "light": "#1A73C9",
           "highContrast": "#9CD2FF",
           "highContrastLight": "#0B4F8F"
+        }
+      },
+      {
+        "id": "codestudio.sqlProjectIcon",
+        "description": "Solution Explorer: SQL database project (.sqlproj) and .dacpac icon.",
+        "defaults": {
+          "dark": "#E2A45C",
+          "light": "#A65E00",
+          "highContrast": "#FFC07A",
+          "highContrastLight": "#7A4300"
         }
       },
       {
@@ -1015,6 +1068,7 @@
     "lint": "tsc -p ./ --noEmit",
     "test": "npm run compile && node --test out/test/*.test.js",
     "test:integration": "npm run compile && node ./out/test/integration/run.js",
+    "test:integration:mssql": "npm run compile && node ./out/test/integration/run.js --mssql",
     "package": "npx @vscode/vsce package"
   },
   "devDependencies": {

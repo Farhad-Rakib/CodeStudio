@@ -30,7 +30,7 @@ describe('theme colors', () => {
     }
   });
 
-  it('both CodeStudio themes define every contributed color', () => {
+  it('both CodeXStudio themes define every contributed color', () => {
     for (const t of themes) for (const c of contributed) assert.match(t.colors[c.id] ?? '', /^#[0-9A-Fa-f]{6,8}$/, `${t.name}: ${c.id}`);
   });
 });

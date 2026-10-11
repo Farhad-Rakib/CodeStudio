@@ -10,8 +10,8 @@ const NOTIFIED_KEY = 'codestudio.defaultExplorerNotified';
 
 /**
  * Makes Solution Explorer the default explorer: it is shown inside VS Code's Explorer
- * sidebar (instead of the CodeStudio activity bar container) and the built-in Files view is
- * hidden. Everything CodeStudio changes is recorded so turning `codestudio.defaultExplorer`
+ * sidebar (instead of the CodeXStudio activity bar container) and the built-in Files view is
+ * hidden. Everything CodeXStudio changes is recorded so turning `codestudio.defaultExplorer`
  * off restores VS Code's default layout.
  */
 export class DefaultExplorerController implements vscode.Disposable {
@@ -34,7 +34,7 @@ export class DefaultExplorerController implements vscode.Disposable {
     return vscode.workspace.getConfiguration('codestudio').get<boolean>(SETTING, true);
   }
 
-  /** True while CodeStudio has hidden the built-in Files view. */
+  /** True while CodeXStudio has hidden the built-in Files view. */
   get filesViewHidden(): boolean {
     return this.globalState.get<boolean>(FILES_HIDDEN_KEY, false);
   }
@@ -90,7 +90,7 @@ export class DefaultExplorerController implements vscode.Disposable {
     void this.globalState.update(NOTIFIED_KEY, true);
     void vscode.window
       .showInformationMessage(
-        'CodeStudio: Solution Explorer is now your default explorer. You can switch back at any time in Settings → CodeStudio → Default Explorer.',
+        'CodeXStudio: Solution Explorer is now your default explorer. You can switch back at any time in Settings → CodeXStudio → Default Explorer.',
         'Keep',
         'Restore VS Code Explorer',
       )

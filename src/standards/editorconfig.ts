@@ -1,9 +1,9 @@
-// Pure generation and merging of CodeStudio's managed .editorconfig section. No 'vscode' import.
+// Pure generation and merging of CodeXStudio's managed .editorconfig section. No 'vscode' import.
 import { NamingStyle } from './naming';
 import { CodingStandards, SymbolKind, requirementFor } from './standards-config';
 
-export const BEGIN_MARKER = '# BEGIN CodeStudio coding standards';
-export const END_MARKER = '# END CodeStudio coding standards';
+export const BEGIN_MARKER = '# BEGIN CodeXStudio coding standards';
+export const END_MARKER = '# END CodeXStudio coding standards';
 const MARKER_PAIRS: readonly [string, string][] = [[BEGIN_MARKER, END_MARKER]];
 
 function capitalization(style: NamingStyle): { capitalization: string; prefix?: string; separator?: string } {
@@ -46,7 +46,7 @@ export function generateSection(s: CodingStandards): string {
   const sev = s.severity;
   const lines: string[] = [
     BEGIN_MARKER,
-    '# Generated from Settings > Extensions > CodeStudio > Coding Standards.',
+    '# Generated from Settings > Extensions > CodeXStudio > Coding Standards.',
     '# Edits inside this block are overwritten; put your own rules outside it.',
     '[*.cs]',
     '',
@@ -133,7 +133,7 @@ export function removeSection(existing: string): string {
   return rest === '' ? '' : rest + eol;
 }
 
-/** True when nothing but `root = true` remains (the line CodeStudio adds to a file it creates). */
+/** True when nothing but `root = true` remains (the line CodeXStudio adds to a file it creates). */
 export function isOnlyRootLine(text: string): boolean {
   return /^root\s*=\s*true$/i.test(text.trim());
 }

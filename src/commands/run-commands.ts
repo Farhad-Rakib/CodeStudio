@@ -1,4 +1,5 @@
 import { ExplorerNode } from '../explorer/solution-tree-item';
+import { ConfigurationController } from '../run/configuration-controller';
 import { StartupController } from '../run/startup-controller';
 import { SolutionProject } from '../solution/solution-model';
 import { CommandContext, registerCommand, requireSolution, resolveProject } from './command-context';
@@ -8,7 +9,11 @@ function projectOf(node: unknown): SolutionProject | undefined {
   return n?.type === 'structure' && n.node.kind === 'project' ? n.node.project : undefined;
 }
 
-export function registerRunCommands(ctx: CommandContext, startup: StartupController): void {
+export function registerRunCommands(ctx: CommandContext, startup: StartupController, configuration: ConfigurationController): void {
+  registerCommand(ctx, 'codestudio.selectConfiguration', 'Select Build Configuration', async () => {
+    requireSolution(ctx);
+    return configuration.pick();
+  });
   registerCommand(ctx, 'codestudio.setStartupProject', 'Set as Startup Project', async (node?: unknown) => {
     const project = await resolveProject(ctx, node, 'Select the startup project');
     if (project) await startup.setStartup(project);

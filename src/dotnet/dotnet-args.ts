@@ -1,6 +1,7 @@
 // Pure argument construction and validation for dotnet CLI invocations.
 // Arguments are always passed as an argv array (never through a shell).
 import * as path from 'path';
+import { ANY_CPU, BuildConfiguration, isValidConfigurationName } from '../solution/build-configuration';
 
 export class DotnetArgumentError extends Error {
   constructor(message: string) {
@@ -45,11 +46,26 @@ export function validatePackageVersion(version: string): string | undefined {
   return undefined;
 }
 
-/** dotnet build|restore|clean|test <target> */
-export function targetVerbArgs(verb: SolutionVerb, target: string): string[] {
+/**
+ * `-c <Configuration>` plus `-p:Platform=<Platform>` for platforms other than Any CPU
+ * (Any CPU is the SDK default, and projects spell it "AnyCPU", so it is never passed).
+ */
+export function configurationArgs(config: BuildConfiguration | undefined): string[] {
+  if (!config) return [];
+  if (!isValidConfigurationName(config.configuration)) throw new DotnetArgumentError(`"${config.configuration}" is not a valid build configuration.`);
+  if (!isValidConfigurationName(config.platform)) throw new DotnetArgumentError(`"${config.platform}" is not a valid platform.`);
+  const args = ['-c', config.configuration];
+  if (config.platform.toLowerCase() !== ANY_CPU.toLowerCase()) args.push(`-p:Platform=${config.platform}`);
+  return args;
+}
+
+/** dotnet build|restore|clean|test <target> [-c <Configuration>] (restore ignores the configuration) */
+export function targetVerbArgs(verb: SolutionVerb, target: string, config?: BuildConfiguration): string[] {
   if (SOLUTION_EXTS.has(path.extname(target).toLowerCase())) validateSolutionPath(target);
   else validateProjectPath(target);
-  return verb === 'build' || verb === 'test' ? [verb, target, '-nologo'] : [verb, target];
+  if (verb === 'restore') return [verb, target];
+  const args = verb === 'build' || verb === 'test' ? [verb, target, '-nologo'] : [verb, target];
+  return [...args, ...configurationArgs(config)];
 }
 
 export function addProjectReferenceArgs(project: string, reference: string): string[] {
@@ -97,20 +113,24 @@ export function newProjectArgs(template: string, name: string, outputDir: string
 }
 
 /** dotnet run --project <project> (uses launchSettings.json profiles when present) */
-export function runProjectArgs(project: string): string[] {
+export function runProjectArgs(project: string, config?: BuildConfiguration): string[] {
   validateProjectPath(project);
-  return ['run', '--project', project];
+  return ['run', '--project', project, ...configurationArgs(config)];
 }
 
 const TFM_RE = /^net[a-z0-9.\-]{1,32}$/i;
 
-/** dotnet msbuild <project> -getProperty:TargetPath [-p:TargetFramework=<tfm>] (SDK 8+) */
-export function targetPathArgs(project: string, targetFramework?: string): string[] {
+/** dotnet msbuild <project> -getProperty:TargetPath [-p:TargetFramework=<tfm>] [-p:Configuration=..] (SDK 8+) */
+export function targetPathArgs(project: string, targetFramework?: string, config?: BuildConfiguration): string[] {
   validateProjectPath(project);
   const args = ['msbuild', project, '-getProperty:TargetPath', '-nologo'];
   if (targetFramework) {
     if (!TFM_RE.test(targetFramework)) throw new DotnetArgumentError(`"${targetFramework}" is not a valid target framework.`);
     args.push(`-p:TargetFramework=${targetFramework}`);
   }
+  // msbuild takes properties, not -c: Configuration=Release resolves bin/Release/... paths.
+  const [, configuration, platform] = configurationArgs(config);
+  if (configuration) args.push(`-p:Configuration=${configuration}`);
+  if (platform) args.push(platform);
   return args;
 }

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- SQL database projects: database icon, .dacpac build-output node, Publish / Schema Compare / Deploy DACPAC through the optional mssql extension, and a warning for Microsoft.Build.Sql 1.x on .NET SDK 10.
+- Build configuration picker (Debug / Release / custom configurations and platforms from the solution) in the status bar; used by Build, Clean, Test, Run and Debug and saved per solution.
 - The solution layout (virtual folders, startup project) is stored in `.vscode/.codeStudio-settings`.
 - Solution Explorer icon colors are contributed theme colors (`codestudio.*Icon`) with dark/light/high-contrast defaults, customizable per theme.
 - Set as Startup Project, Start Debugging (via the C# extension's coreclr debugger) and Start Without Debugging (`dotnet run`), with a status bar item.
@@ -19,7 +21,7 @@ Initial release.
 
 - Solution Explorer view with solution folders, projects, dependencies (frameworks, NuGet packages, project references) and project files.
 - `.sln` and `.slnx` parsing with validation and clear errors.
-- Virtual solution folders stored in a CodeStudio layout file (create, rename, delete, nest, drag and drop, move projects).
+- Virtual solution folders stored in a CodeXStudio layout file (create, rename, delete, nest, drag and drop, move projects).
 - Build, restore, clean, test, add project reference, add existing project and NuGet package commands through the `dotnet` CLI.
-- CodeStudio Dark and CodeStudio Light color themes.
+- CodeXStudio Dark and CodeXStudio Light color themes.
 - "Apply Recommended Settings" command with per-setting review.

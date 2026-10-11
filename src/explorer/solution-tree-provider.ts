@@ -5,6 +5,7 @@ import { SolutionManager } from '../solution-manager';
 import { ProjectInfo } from '../solution/project-reader';
 import { SolutionProject } from '../solution/solution-model';
 import { assignProject, LayoutError, moveFolder } from '../storage/layout-store';
+import { dacpacPath, sqlSdkCompatibilityWarning } from '../sql/sql-project';
 import { createTreeItem, ExplorerNode } from './solution-tree-item';
 import { buildStructure, filterStructure, StructureNode } from './tree-builder';
 
@@ -18,7 +19,15 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
 
   private filterText = '';
 
-  constructor(private readonly manager: SolutionManager, private readonly logger: Logger) {
+  /**
+   * @param dotnetSdkVersion Resolves the active .NET SDK version. Only called when a SQL project is
+   *   shown, to flag Microsoft.Build.Sql versions that cannot build with it.
+   */
+  constructor(
+    private readonly manager: SolutionManager,
+    private readonly logger: Logger,
+    private readonly dotnetSdkVersion: () => Promise<string | undefined> = async () => undefined,
+  ) {
     manager.onDidChange(() => this.refresh());
   }
 
@@ -41,7 +50,8 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
       try {
         const startup = this.manager.solution?.layout.startupProject;
         const info = await this.manager.projectInfo(node.node.project.absolutePath);
-        return createTreeItem(node, this.filterText !== '', info, undefined, startup);
+        const sqlWarning = node.node.project.kind === 'sqlproj' ? await this.sqlWarning(info) : undefined;
+        return createTreeItem(node, this.filterText !== '', info, undefined, startup, sqlWarning);
       } catch (err) {
         const startup = this.manager.solution?.layout.startupProject;
         return createTreeItem(node, this.filterText !== '', undefined, `Cannot read project file: ${(err as Error).message}`, startup);
@@ -96,6 +106,11 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
     }
   }
 
+  private async sqlWarning(info: ProjectInfo): Promise<string | undefined> {
+    const version = await this.dotnetSdkVersion().catch(() => undefined);
+    return version ? sqlSdkCompatibilityWarning(info.sdk, version) : undefined;
+  }
+
   private async safeInfo(project: SolutionProject): Promise<ProjectInfo | undefined> {
     try {
       return await this.manager.projectInfo(project.absolutePath);
@@ -114,7 +129,8 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
   private async dependencyGroups(project: SolutionProject): Promise<ExplorerNode[]> {
     const info = await this.safeInfo(project);
     if (!info) return [{ type: 'message', id: `deps-error:${project.key}`, text: 'Project file could not be read', icon: 'warning' }];
-    const groups: ExplorerNode[] = [{ type: 'dependencyGroup', project, group: 'frameworks' }];
+    // SQL database projects have no .NET framework references.
+    const groups: ExplorerNode[] = project.kind === 'sqlproj' ? [] : [{ type: 'dependencyGroup', project, group: 'frameworks' }];
     if (info.packages.length) groups.push({ type: 'dependencyGroup', project, group: 'packages' });
     if (info.projectReferences.length) groups.push({ type: 'dependencyGroup', project, group: 'projects' });
     return groups;
@@ -122,6 +138,12 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
 
   private async projectChildren(project: SolutionProject): Promise<ExplorerNode[]> {
     const children: ExplorerNode[] = [{ type: 'dependencies', project }];
+    const configuration = this.manager.activeConfiguration?.configuration;
+    if (project.kind === 'sqlproj' && configuration) {
+      const uri = vscode.Uri.file(dacpacPath(project.absolutePath, configuration));
+      const exists = await vscode.workspace.fs.stat(uri).then(() => true, () => false);
+      children.unshift({ type: 'buildOutput', project, uri, configuration, exists });
+    }
     if (vscode.workspace.getConfiguration('codestudio').get<boolean>('explorer.showPhysicalFiles', true)) {
       children.push(...(await this.directoryChildren(project, vscode.Uri.file(path.dirname(project.absolutePath)))));
     }
@@ -171,7 +193,7 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
     if (!target || target.type === 'solution') folderId = undefined;
     else if (target.type === 'structure' && target.node.kind === 'virtualFolder') folderId = target.node.folder.id;
     else {
-      void vscode.window.showInformationMessage('CodeStudio: Drop projects onto a virtual folder or the solution node. Solution folders from the .sln file are read-only.');
+      void vscode.window.showInformationMessage('CodeXStudio: Drop projects onto a virtual folder or the solution node. Solution folders from the .sln file are read-only.');
       return;
     }
 
@@ -188,7 +210,7 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
       });
     } catch (err) {
       const message = err instanceof LayoutError ? err.message : `Move failed: ${(err as Error).message}`;
-      void vscode.window.showErrorMessage(`CodeStudio: ${message}`);
+      void vscode.window.showErrorMessage(`CodeXStudio: ${message}`);
     }
   }
 }

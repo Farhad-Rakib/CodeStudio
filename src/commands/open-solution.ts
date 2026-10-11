@@ -43,7 +43,7 @@ async function openWithFeedback(ctx: CommandContext, solutionPath: string): Prom
   const loaded = await ctx.manager.open(solutionPath);
   if (loaded.model.warnings.length) {
     const choice = await vscode.window.showWarningMessage(
-      `CodeStudio: ${path.basename(solutionPath)} opened with ${loaded.model.warnings.length} warning(s).`,
+      `CodeXStudio: ${path.basename(solutionPath)} opened with ${loaded.model.warnings.length} warning(s).`,
       'Show Log',
     );
     if (choice) ctx.logger.show();
@@ -60,10 +60,10 @@ export async function autoOpen(ctx: CommandContext, interactive = false): Promis
     if (lastStillPresent) await openWithFeedback(ctx, last);
     else if (found.length === 1 && (enabled || interactive)) await openWithFeedback(ctx, found[0].fsPath);
     else if (interactive && found.length > 1) await vscode.commands.executeCommand('codestudio.openSolution');
-    else if (interactive) void vscode.window.showInformationMessage('CodeStudio: No .sln or .slnx files were found in this workspace.');
+    else if (interactive) void vscode.window.showInformationMessage('CodeXStudio: No .sln or .slnx files were found in this workspace.');
   } catch (err) {
     ctx.logger.error('Automatic solution load failed', err);
-    const choice = await vscode.window.showErrorMessage(`CodeStudio: Could not open solution. ${(err as Error).message}`, 'Show Log');
+    const choice = await vscode.window.showErrorMessage(`CodeXStudio: Could not open solution. ${(err as Error).message}`, 'Show Log');
     if (choice) ctx.logger.show();
   }
 }

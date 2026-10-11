@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { execFile } from 'node:child_process';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import type { CodeStudioApi } from '../../src/extension';
+import type { CodeXStudioApi } from '../../src/extension';
 import type { ExplorerNode } from '../../src/explorer/solution-tree-item';
 import type { NuGetPanel, PanelMessage } from '../../src/nuget/nuget-panel';
 import { assignProject, createFolder, layoutPathFor } from '../../src/storage/layout-store';
@@ -16,7 +16,7 @@ function withTimeout<T>(p: Thenable<T>, ms: number, what: string): Promise<T> {
   ]);
 }
 
-async function labels(api: CodeStudioApi, node?: ExplorerNode): Promise<string[]> {
+async function labels(api: CodeXStudioApi, node?: ExplorerNode): Promise<string[]> {
   const children = await api.provider.getChildren(node);
   return Promise.all(children.map(async c => {
     const item = await api.provider.getTreeItem(c);
@@ -24,7 +24,7 @@ async function labels(api: CodeStudioApi, node?: ExplorerNode): Promise<string[]
   }));
 }
 
-async function child(api: CodeStudioApi, parent: ExplorerNode | undefined, label: string): Promise<ExplorerNode> {
+async function child(api: CodeXStudioApi, parent: ExplorerNode | undefined, label: string): Promise<ExplorerNode> {
   for (const c of await api.provider.getChildren(parent)) {
     const item = await api.provider.getTreeItem(c);
     if ((typeof item.label === 'string' ? item.label : item.label?.label) === label) return c;
@@ -59,7 +59,7 @@ function execDotnet(args: string[], cwd: string): Promise<void> {
     execFile('dotnet', args, { cwd }, (err, stdout, stderr) => (err ? reject(new Error(`${stdout}\n${stderr}`.trim() || err.message)) : resolve())));
 }
 
-async function projectNode(api: CodeStudioApi, name: string): Promise<ExplorerNode> {
+async function projectNode(api: CodeXStudioApi, name: string): Promise<ExplorerNode> {
   const project = api.manager.solution!.model.projects.find(p => p.name === name)!;
   const [root] = await api.provider.getChildren();
   const find = async (nodes: ExplorerNode[]): Promise<ExplorerNode | undefined> => {
@@ -95,12 +95,12 @@ async function step(name: string, fn: () => Promise<void>): Promise<void> {
 export async function run(): Promise<void> {
   const workspace = vscode.workspace.workspaceFolders![0].uri.fsPath;
   const sln = path.join(workspace, 'SampleApp.sln');
-  let api!: CodeStudioApi;
-  console.log('CodeStudio integration tests');
+  let api!: CodeXStudioApi;
+  console.log('CodeXStudio integration tests');
   watchErrors();
 
   await step('extension activates', async () => {
-    const ext = vscode.extensions.getExtension<CodeStudioApi>('codestudio.codestudio');
+    const ext = vscode.extensions.getExtension<CodeXStudioApi>('fhasancse.codeXstudio');
     assert.ok(ext, 'extension not found');
     api = await ext.activate();
     assert.ok(ext.isActive);
@@ -251,6 +251,20 @@ export async function run(): Promise<void> {
     assert.ok(existsSync(dll), `${dll} missing`);
   });
 
+  await step('Build configuration picker: Release is persisted and used by Build Solution', async () => {
+    assert.deepEqual(api.manager.activeConfiguration, { configuration: 'Debug', platform: 'Any CPU' }, 'defaults to Debug');
+    const release = api.manager.solution!.model.configurations.find(c => c.configuration === 'Release');
+    assert.ok(release, 'fixture solution declares Release');
+    await api.configuration.set(release);
+    const stored = JSON.parse(readFileSync(layoutPathFor(sln), 'utf8'));
+    assert.equal(stored.activeConfiguration, 'Release|Any CPU');
+    await withTimeout(vscode.commands.executeCommand('codestudio.buildSolution'), 240000, 'release build');
+    const dll = path.join(workspace, 'src', 'Sample.App', 'bin', 'Release', 'net10.0', 'Sample.App.dll');
+    assert.ok(existsSync(dll), `${dll} missing`);
+    await api.configuration.set({ configuration: 'Debug', platform: 'Any CPU' });
+    assert.equal(api.manager.activeConfiguration?.configuration, 'Debug');
+  });
+
 
 
   await step('Startup project: set, shown in tree, persisted, run, debug fallback, clear', async () => {
@@ -263,7 +277,7 @@ export async function run(): Promise<void> {
     assert.match(String(item.description), /^startup/);
     assert.deepEqual((item.label as vscode.TreeItemLabel).highlights, [[0, 'Sample.App'.length]]);
     assert.equal(api.startup.startupProject?.name, 'Sample.App');
-    // Icons use CodeStudio's contributed theme colors.
+    // Icons use CodeXStudio's contributed theme colors.
     assert.equal(((item.iconPath as vscode.ThemeIcon).color as vscode.ThemeColor).id, 'codestudio.csharpProjectIcon');
 
     // A class library asks for confirmation; cancelling keeps the current startup project.
@@ -280,7 +294,7 @@ export async function run(): Promise<void> {
     });
     const execution = await vscode.commands.executeCommand<vscode.TaskExecution>('codestudio.runStartupProject');
     assert.ok(execution, 'run task started');
-    assert.deepEqual((execution.task.execution as vscode.ProcessExecution).args, ['run', '--project', path.join(workspace, 'src', 'Sample.App', 'Sample.App.csproj')]);
+    assert.deepEqual((execution.task.execution as vscode.ProcessExecution).args, ['run', '--project', path.join(workspace, 'src', 'Sample.App', 'Sample.App.csproj'), '-c', 'Debug']);
     assert.equal(await withTimeout(ended, 180000, 'dotnet run'), 0, 'console app ran and exited cleanly');
 
     // Without a C# extension, Start Debugging explains why and can fall back to running.
@@ -513,7 +527,7 @@ export async function run(): Promise<void> {
       await cfg().update('style.var', 'always', vscode.ConfigurationTarget.Workspace); // template code uses var everywhere
       await api.standards.syncEditorConfig();
       const written = readFileSync(editorconfig, 'utf8');
-      assert.match(written, /# BEGIN CodeStudio coding standards/);
+      assert.match(written, /# BEGIN CodeXStudio coding standards/);
       assert.match(written, /dotnet_naming_rule\.dp_private_fields\.severity = warning/);
 
       // Live diagnostics + quick fix (no C# extension here, so the file-local fallback rename is used).
@@ -521,7 +535,7 @@ export async function run(): Promise<void> {
       const doc = await vscode.workspace.openTextDocument(badFile);
       await vscode.window.showTextDocument(doc);
       api.standards.lint(doc);
-      const diags = () => vscode.languages.getDiagnostics(doc.uri).filter(x => x.source === 'CodeStudio');
+      const diags = () => vscode.languages.getDiagnostics(doc.uri).filter(x => x.source === 'CodeXStudio');
       assert.deepEqual(diags().map(x => doc.getText(x.range)), ['Count', 'Amount', 'New_Total']);
       const target = diags().find(x => doc.getText(x.range) === 'New_Total')!;
       const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>('vscode.executeCodeActionProvider', doc.uri, target.range);
@@ -548,7 +562,7 @@ export async function run(): Promise<void> {
       let ide1006: string[] = [];
       for (let waited = 0; waited < 15000 && ide1006.length < 2; waited += 250) {
         await new Promise(r => setTimeout(r, 250));
-        all = vscode.languages.getDiagnostics().flatMap(([u, ds]) => ds.filter(x => x.source !== 'CodeStudio').map(x => `${u.fsPath}|${typeof x.code === 'object' ? x.code.value : x.code}|${x.message}`));
+        all = vscode.languages.getDiagnostics().flatMap(([u, ds]) => ds.filter(x => x.source !== 'CodeXStudio').map(x => `${u.fsPath}|${typeof x.code === 'object' ? x.code.value : x.code}|${x.message}`));
         ide1006 = all.filter(x => x.startsWith(badFile + '|') && x.includes('IDE1006'));
       }
       if (ide1006.length < 2) {
@@ -561,10 +575,10 @@ export async function run(): Promise<void> {
       await withTimeout(vscode.commands.executeCommand('codestudio.buildProject', await projectNode(api, 'Sample.Core')), 240000, 'clean build');
       assert.match(status, /succeeded/, `fixed code should build; errors: ${JSON.stringify(takeErrors())}`);
 
-      // Turning the feature off removes CodeStudio's .editorconfig (it created the file) and clears diagnostics.
+      // Turning the feature off removes CodeXStudio's .editorconfig (it created the file) and clears diagnostics.
       for (const key of ['severity', 'enforceInBuild', 'style.var', 'enabled']) await cfg().update(key, undefined, vscode.ConfigurationTarget.Workspace);
       await api.standards.syncEditorConfig();
-      assert.ok(!existsSync(editorconfig), '.editorconfig created by CodeStudio is removed');
+      assert.ok(!existsSync(editorconfig), '.editorconfig created by CodeXStudio is removed');
       writeFileSync(badFile, readFileSync(badFile, 'utf8').replace('_count', 'Count'));
       api.standards.lint(await vscode.workspace.openTextDocument(badFile));
       assert.deepEqual(diags(), []);
@@ -573,7 +587,7 @@ export async function run(): Promise<void> {
       writeFileSync(editorconfig, 'root = true\n\n[*]\nindent_style = space\n');
       await cfg().update('enabled', true, vscode.ConfigurationTarget.Workspace);
       await api.standards.syncEditorConfig();
-      assert.match(readFileSync(editorconfig, 'utf8'), /indent_style = space[\s\S]*BEGIN CodeStudio/);
+      assert.match(readFileSync(editorconfig, 'utf8'), /indent_style = space[\s\S]*BEGIN CodeXStudio/);
       await cfg().update('enabled', undefined, vscode.ConfigurationTarget.Workspace);
       await api.standards.syncEditorConfig();
       assert.equal(readFileSync(editorconfig, 'utf8'), 'root = true\n\n[*]\nindent_style = space\n');
@@ -594,6 +608,50 @@ export async function run(): Promise<void> {
     await vscode.commands.executeCommand('codestudio.runTests', await projectNode(api, 'Sample.Core'));
     restoreStubs(); watchErrors();
     assert.ok(takeErrors().some(e => /does not look like a test project/.test(e)));
+  });
+
+  await step('SQL database project: tree node, build to .dacpac, Publish needs the mssql extension', async () => {
+    const dbDir = path.join(workspace, 'db', 'Sample.Db');
+    const proj = path.join(dbDir, 'Sample.Db.sqlproj');
+    mkdirSync(dbDir, { recursive: true });
+    writeFileSync(proj, '<Project Sdk="Microsoft.Build.Sql/2.3.0">\n  <PropertyGroup>\n    <Name>Sample.Db</Name>\n    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql160DatabaseSchemaProvider</DSP>\n  </PropertyGroup>\n</Project>\n');
+    writeFileSync(path.join(dbDir, 'Customers.sql'), 'CREATE TABLE dbo.Customers (Id INT NOT NULL PRIMARY KEY, Name NVARCHAR(100) NOT NULL);\n');
+    try {
+      await execDotnet(['sln', sln, 'add', proj], workspace);
+      await api.manager.reload();
+      const node = await projectNode(api, 'Sample.Db');
+      const item = await api.provider.getTreeItem(node);
+      assert.equal(item.contextValue, 'project.sql');
+      assert.equal((item.iconPath as vscode.ThemeIcon).id, 'database');
+      assert.equal(item.description, 'SQL database');
+
+      const dacpacNode = async () => (await api.provider.getChildren(node)).find(c => c.type === 'buildOutput')!;
+      let output = await api.provider.getTreeItem(await dacpacNode());
+      assert.equal(output.label, 'Sample.Db.dacpac');
+      assert.equal(output.contextValue, 'dacpac.missing', 'not built yet');
+
+      await withTimeout(vscode.commands.executeCommand('codestudio.buildProject', node), 300000, 'sqlproj build');
+      assert.ok(existsSync(path.join(dbDir, 'bin', 'Debug', 'Sample.Db.dacpac')), '.dacpac built');
+      output = await api.provider.getTreeItem(await dacpacNode());
+      assert.equal(output.contextValue, 'dacpac');
+      assert.equal(output.description, 'bin/Debug');
+
+      // The test VS Code has no mssql extension: Publish explains and offers to show it.
+      let info = '';
+      stub('showInformationMessage', async (m: string) => { info = m; return undefined; });
+      await vscode.commands.executeCommand('codestudio.publishSqlProject', node);
+      assert.match(info, /mssql/);
+      restoreStubs(); watchErrors();
+
+      // Non-SQL projects are refused.
+      await vscode.commands.executeCommand('codestudio.publishSqlProject', await projectNode(api, 'Sample.App'));
+      assert.match(takeErrors().join(), /not a SQL database project/);
+    } finally {
+      restoreStubs(); watchErrors();
+      await execDotnet(['sln', sln, 'remove', proj], workspace).catch(() => undefined);
+      rmSync(path.join(workspace, 'db'), { recursive: true, force: true });
+      await api.manager.reload();
+    }
   });
 
   await step('Clean Solution runs dotnet clean', async () => {
@@ -631,19 +689,19 @@ export async function run(): Promise<void> {
     assert.equal(after.inspect('editor.bracketPairColorization.enabled')!.workspaceValue, true);
     const cs = vscode.workspace.getConfiguration(undefined, { languageId: 'csharp' });
     assert.equal(cs.inspect('editor.formatOnSave')!.workspaceLanguageValue, true);
-    const preview = vscode.workspace.textDocuments.find(d => d.isUntitled && d.getText().includes('CodeStudio: settings'));
+    const preview = vscode.workspace.textDocuments.find(d => d.isUntitled && d.getText().includes('CodeXStudio: settings'));
     assert.ok(preview, 'preview document opened');
     assert.ok(!preview.getText().includes('minimap'), 'unselected setting not in preview');
   });
 
-  await step('CodeStudio Dark and Light themes are contributed and selectable', async () => {
-    const ext = vscode.extensions.getExtension('codestudio.codestudio')!;
+  await step('CodeXStudio Dark and Light themes are contributed and selectable', async () => {
+    const ext = vscode.extensions.getExtension('fhasancse.codeXstudio')!;
     const themes = ext.packageJSON.contributes.themes.map((t: { label: string }) => t.label);
-    assert.deepEqual(themes, ['CodeStudio Dark', 'CodeStudio Light']);
-    await vscode.workspace.getConfiguration('workbench').update('colorTheme', 'CodeStudio Light', vscode.ConfigurationTarget.Workspace);
+    assert.deepEqual(themes, ['CodeXStudio Dark', 'CodeXStudio Light']);
+    await vscode.workspace.getConfiguration('workbench').update('colorTheme', 'CodeXStudio Light', vscode.ConfigurationTarget.Workspace);
     await new Promise(r => setTimeout(r, 1500));
     assert.equal(vscode.window.activeColorTheme.kind, vscode.ColorThemeKind.Light);
-    await vscode.workspace.getConfiguration('workbench').update('colorTheme', 'CodeStudio Dark', vscode.ConfigurationTarget.Workspace);
+    await vscode.workspace.getConfiguration('workbench').update('colorTheme', 'CodeXStudio Dark', vscode.ConfigurationTarget.Workspace);
     await new Promise(r => setTimeout(r, 1500));
     assert.equal(vscode.window.activeColorTheme.kind, vscode.ColorThemeKind.Dark);
   });

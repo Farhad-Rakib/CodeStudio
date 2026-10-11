@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { Logger } from './logger';
 import { JsonLayoutStore, LayoutStore, SolutionLayout } from './storage/layout-store';
+import { BuildConfiguration, resolveActiveConfiguration } from './solution/build-configuration';
 import { ProjectInfo, readProject } from './solution/project-reader';
 import { SolutionModel } from './solution/solution-model';
 import { readSolution } from './solution/solution-reader';
@@ -26,6 +27,12 @@ export class SolutionManager implements vscode.Disposable {
   readonly onDidChange = this.changed.event;
 
   constructor(private readonly state: vscode.Memento, private readonly logger: Logger) {}
+
+  /** The build configuration Build/Clean/Test/Run/Debug use; undefined when no solution is open. */
+  get activeConfiguration(): BuildConfiguration | undefined {
+    const cur = this.current;
+    return cur ? resolveActiveConfiguration(cur.model.configurations, cur.layout.activeConfiguration) : undefined;
+  }
 
   get solution(): LoadedSolution | undefined {
     return this.current;
@@ -128,7 +135,7 @@ export class SolutionManager implements vscode.Disposable {
     };
     add(new vscode.RelativePattern(dir, path.basename(solutionPath)), 'solution');
     add(new vscode.RelativePattern(path.dirname(layoutPath), path.basename(layoutPath)), 'layout');
-    add(new vscode.RelativePattern(dir, '**/*.{csproj,fsproj,vbproj}'), 'project');
+    add(new vscode.RelativePattern(dir, '**/*.{csproj,fsproj,vbproj,sqlproj}'), 'project');
   }
 
   private disposeWatchers(): void {

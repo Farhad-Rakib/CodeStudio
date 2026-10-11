@@ -1,4 +1,5 @@
 // UI-independent solution data model. Nothing in src/solution may import 'vscode'.
+import { BuildConfiguration } from './build-configuration';
 
 export type SolutionFormat = 'sln' | 'slnx';
 
@@ -34,6 +35,8 @@ export interface SolutionModel {
   readonly name: string;
   readonly projects: readonly SolutionProject[];
   readonly folders: readonly SolutionFolder[];
+  /** Solution configurations (Debug|Any CPU, ...); the SDK defaults when the file declares none. */
+  readonly configurations: readonly BuildConfiguration[];
   /** Non-fatal issues found while parsing (e.g. dangling nesting entries). */
   readonly warnings: readonly string[];
 }

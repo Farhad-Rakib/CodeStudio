@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 export class Logger implements vscode.Disposable {
-  private readonly channel = vscode.window.createOutputChannel('CodeStudio', { log: true });
+  private readonly channel = vscode.window.createOutputChannel('CodeXStudio', { log: true });
 
   info(message: string): void {
     this.channel.info(message);
@@ -28,6 +28,6 @@ export class Logger implements vscode.Disposable {
 export async function reportError(logger: Logger, action: string, err: unknown): Promise<void> {
   const message = err instanceof Error ? err.message : String(err);
   logger.error(`${action} failed`, err);
-  const choice = await vscode.window.showErrorMessage(`CodeStudio: ${action} failed. ${message}`, 'Show Log');
+  const choice = await vscode.window.showErrorMessage(`CodeXStudio: ${action} failed. ${message}`, 'Show Log');
   if (choice === 'Show Log') logger.show();
 }

@@ -115,7 +115,7 @@ export function registerTemplateCommands(ctx: CommandContext): void {
       const added = ctx.manager.solution?.model.projects.find(p => p.key === key || path.resolve(p.absolutePath) === path.resolve(projectFile));
       if (added) await ctx.manager.updateLayout(l => assignProject(l, added.key, targetFolderId));
     }
-    void vscode.window.showInformationMessage(`CodeStudio: Created ${name} and added it to ${model.name}.`);
+    void vscode.window.showInformationMessage(`CodeXStudio: Created ${name} and added it to ${model.name}.`);
   });
 
   registerCommand(ctx, 'codestudio.newItem', 'New Item', async (node?: unknown) => {

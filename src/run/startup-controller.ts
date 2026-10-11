@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { runProjectArgs, targetPathArgs } from '../dotnet/dotnet-args';
+import { runProjectArgs, targetPathArgs, targetVerbArgs } from '../dotnet/dotnet-args';
 import { DotnetRunner } from '../dotnet/dotnet-runner';
 import { Logger } from '../logger';
 import { SolutionManager } from '../solution-manager';
@@ -11,16 +11,16 @@ import { isRunnable, isWebProject } from './runnable';
 const CSHARP_EXTENSION_ID = 'ms-dotnettools.csharp';
 
 /**
- * Visual Studio-style startup project: stored in the CodeStudio layout, shown in the status bar,
+ * Visual Studio-style startup project: stored in the CodeXStudio layout, shown in the status bar,
  * started with `dotnet run` (Start Without Debugging) or through the installed C# extension's
- * coreclr debugger (Start Debugging). CodeStudio does not ship a debugger of its own.
+ * coreclr debugger (Start Debugging). CodeXStudio does not ship a debugger of its own.
  */
 export class StartupController implements vscode.Disposable {
   private readonly statusItem = vscode.window.createStatusBarItem('codestudio.startup', vscode.StatusBarAlignment.Left, 50);
   private readonly disposables: vscode.Disposable[] = [this.statusItem];
 
   constructor(private readonly manager: SolutionManager, private readonly runner: DotnetRunner, private readonly logger: Logger) {
-    this.statusItem.name = 'CodeStudio Startup Project';
+    this.statusItem.name = 'CodeXStudio Startup Project';
     this.disposables.push(manager.onDidChange(() => this.update()));
     this.update();
   }
@@ -98,7 +98,7 @@ export class StartupController implements vscode.Disposable {
   async run(project?: SolutionProject): Promise<vscode.TaskExecution | undefined> {
     const target = await this.target(project);
     if (!target) return undefined;
-    return this.runner.startTask(`Run: ${target.name}`, runProjectArgs(target.absolutePath), path.dirname(target.absolutePath), target.absolutePath);
+    return this.runner.startTask(`Run: ${target.name}`, runProjectArgs(target.absolutePath, this.manager.activeConfiguration), path.dirname(target.absolutePath), target.absolutePath);
   }
 
   /** Start Debugging: build, resolve the output assembly, then launch the coreclr debugger. */
@@ -107,7 +107,7 @@ export class StartupController implements vscode.Disposable {
     if (!target) return false;
     if (!hasCoreClrDebugger()) {
       const choice = await vscode.window.showWarningMessage(
-        `Debugging .NET needs a C# extension that provides the "coreclr" debugger. CodeStudio uses it instead of shipping its own debugger.`,
+        `Debugging .NET needs a C# extension that provides the "coreclr" debugger. CodeXStudio uses it instead of shipping its own debugger.`,
         'Install C# Extension',
         'Start Without Debugging',
       );
@@ -117,12 +117,13 @@ export class StartupController implements vscode.Disposable {
     }
 
     const info = await this.manager.projectInfo(target.absolutePath);
-    const buildExit = await this.runner.runTask(`Build Project: ${target.name}`, ['build', target.absolutePath, '-nologo'], path.dirname(target.absolutePath), target.absolutePath);
+    const buildConfig = this.manager.activeConfiguration;
+    const buildExit = await this.runner.runTask(`Build Project: ${target.name}`, targetVerbArgs('build', target.absolutePath, buildConfig), path.dirname(target.absolutePath), target.absolutePath);
     if (buildExit !== 0) {
-      void vscode.window.showErrorMessage(`CodeStudio: Build of ${target.name} failed, so debugging was not started. See the Problems panel.`);
+      void vscode.window.showErrorMessage(`CodeXStudio: Build of ${target.name} failed, so debugging was not started. See the Problems panel.`);
       return false;
     }
-    const { stdout } = await this.runner.exec(targetPathArgs(target.absolutePath, info.targetFrameworks.length > 1 ? info.targetFrameworks[0] : undefined), path.dirname(target.absolutePath));
+    const { stdout } = await this.runner.exec(targetPathArgs(target.absolutePath, info.targetFrameworks.length > 1 ? info.targetFrameworks[0] : undefined, buildConfig), path.dirname(target.absolutePath));
     const program = stdout.trim().split(/\r?\n/).pop()?.trim();
     if (!program) throw new Error(`Could not determine the output assembly of ${target.name}.`);
 
@@ -130,7 +131,7 @@ export class StartupController implements vscode.Disposable {
     const config: vscode.DebugConfiguration = {
       type: 'coreclr',
       request: 'launch',
-      name: `CodeStudio: ${target.name}`,
+      name: `CodeXStudio: ${target.name}`,
       program,
       args: [],
       cwd: path.dirname(target.absolutePath),

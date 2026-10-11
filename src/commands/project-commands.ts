@@ -50,7 +50,7 @@ export function registerProjectCommands(ctx: CommandContext): void {
     for (const pick of picks) {
       await ctx.runner.exec(addProjectReferenceArgs(project.absolutePath, pick.project.absolutePath), path.dirname(project.absolutePath));
     }
-    void vscode.window.showInformationMessage(`CodeStudio: Added ${picks.length} reference(s) to ${project.name}.`);
+    void vscode.window.showInformationMessage(`CodeXStudio: Added ${picks.length} reference(s) to ${project.name}.`);
     await ctx.manager.reload();
   });
 
@@ -70,7 +70,7 @@ export function registerProjectCommands(ctx: CommandContext): void {
 
   registerCommand(ctx, 'codestudio.revealInOS', 'Reveal in File Explorer', async (node?: ExplorerNode) => {
     let uri: vscode.Uri | undefined;
-    if (node?.type === 'file' || node?.type === 'physicalFolder') uri = node.uri;
+    if (node?.type === 'file' || node?.type === 'physicalFolder' || (node?.type === 'buildOutput' && node.exists)) uri = node.uri;
     else if (node?.type === 'structure' && node.node.kind === 'project') uri = vscode.Uri.file(node.node.project.absolutePath);
     if (uri) await vscode.commands.executeCommand('revealFileInOS', uri);
   });

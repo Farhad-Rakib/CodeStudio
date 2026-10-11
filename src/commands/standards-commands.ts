@@ -6,7 +6,7 @@ import { CommandContext, registerCommand, requireSolution, UserFacingError } fro
 
 function requireEnabled(): void {
   if (!standardsEnabled()) {
-    throw new UserFacingError('Coding standards are off. Enable "CodeStudio › Coding Standards: Enabled" in Settings first.');
+    throw new UserFacingError('Coding standards are off. Enable "CodeXStudio › Coding Standards: Enabled" in Settings first.');
   }
 }
 
@@ -25,8 +25,8 @@ export function registerStandardsCommands(ctx: CommandContext, standards: Standa
     await standards.syncEditorConfig();
     const args = ['format', 'style', model.path, '--verify-no-changes', '--severity', formatSeverity(currentStandards())];
     const code = await ctx.runner.runTask(`Check Coding Standards: ${model.name}`, args, cwdFor(model.path), model.path);
-    if (code === 0) void vscode.window.showInformationMessage('CodeStudio: No coding standard violations found.');
-    else void vscode.window.showWarningMessage('CodeStudio: Coding standard violations found. See the Problems panel.', 'Fix Automatically')
+    if (code === 0) void vscode.window.showInformationMessage('CodeXStudio: No coding standard violations found.');
+    else void vscode.window.showWarningMessage('CodeXStudio: Coding standard violations found. See the Problems panel.', 'Fix Automatically')
       .then(choice => { if (choice) void vscode.commands.executeCommand('codestudio.fixCodingStandards'); });
   });
 
@@ -47,7 +47,7 @@ export function registerStandardsCommands(ctx: CommandContext, standards: Standa
     await standards.syncEditorConfig();
     const args = ['format', 'style', model.path, '--severity', formatSeverity(currentStandards())];
     const code = await ctx.runner.runTask(`Fix Coding Standards: ${model.name}`, args, cwdFor(model.path), model.path);
-    if (code === 0) void vscode.window.showInformationMessage('CodeStudio: Code-style fixes applied. Remaining naming violations can be fixed with the lightbulb quick fix.');
-    else void vscode.window.showErrorMessage(`CodeStudio: dotnet format exited with code ${code}. See the terminal output.`);
+    if (code === 0) void vscode.window.showInformationMessage('CodeXStudio: Code-style fixes applied. Remaining naming violations can be fixed with the lightbulb quick fix.');
+    else void vscode.window.showErrorMessage(`CodeXStudio: dotnet format exited with code ${code}. See the terminal output.`);
   });
 }
