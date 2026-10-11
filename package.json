@@ -2,7 +2,7 @@
   "name": "codeXstudio",
   "displayName": "CodeXStudio - .NET Dev Assistant",
   "description": "A Visual Studio-inspired Solution Explorer, virtual solution folders, .NET CLI commands and themes for VS Code.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "preview": true,
   "publisher": "fhasancse",
   "icon": "images/icon.png",
@@ -244,12 +244,12 @@
       },
       {
         "command": "codestudio.restoreDefaultExplorer",
-        "title": "Restore VS Code Default Explorer",
+        "title": "Move Solution Explorer to Its Own Sidebar",
         "category": "CodeXStudio"
       },
       {
         "command": "codestudio.makeDefaultExplorer",
-        "title": "Make Solution Explorer the Default Explorer",
+        "title": "Show Solution Explorer in the Explorer Sidebar",
         "category": "CodeXStudio"
       },
       {
@@ -634,9 +634,9 @@
       "properties": {
         "codestudio.defaultExplorer": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "order": 0,
-          "markdownDescription": "Use **Solution Explorer** as the default explorer: it appears in VS Code's Explorer sidebar and the built-in Files view is hidden in workspaces that contain a solution.\n\nUncheck to restore VS Code's default Explorer (Solution Explorer moves to the CodeXStudio icon in the Activity Bar). You can also run [Restore VS Code Default Explorer](command:codestudio.restoreDefaultExplorer)."
+          "markdownDescription": "Show **Solution Explorer** in VS Code's Explorer sidebar (below the built-in Files view) instead of in its own CodeXStudio sidebar in the Activity Bar.\n\nVS Code does not let extensions hide or move the Files view, so it stays visible; collapse it if you don't need it."
         },
         "codestudio.autoOpenSingleSolution": {
           "type": "boolean",

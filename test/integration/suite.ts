@@ -107,36 +107,32 @@ export async function run(): Promise<void> {
   });
 
 
-  await step('Solution Explorer becomes the default explorer and can be reverted from settings', async () => {
+  await step('Solution Explorer has its own sidebar by default and can move into the Explorer; Files is never hidden', async () => {
     await api.ready;
     const config = () => vscode.workspace.getConfiguration('codestudio');
-    assert.equal(config().get('defaultExplorer'), true, 'on by default');
+    // The test profile persists between runs; start from the shipped default.
+    await config().update('defaultExplorer', undefined, vscode.ConfigurationTarget.Global);
+    assert.equal(config().inspect('defaultExplorer')!.defaultValue, false, 'own sidebar by default');
+    assert.equal(config().get('defaultExplorer'), false);
     // The fixture holds both SampleApp.sln and SampleApp.slnx, so nothing auto-opens; open one explicitly.
     assert.equal(api.manager.solution, undefined, 'ambiguous workspace must not auto-open');
     await vscode.commands.executeCommand('codestudio.openSolution', sln);
     await api.defaultExplorer.sync();
-    assert.equal(api.defaultExplorer.filesViewHidden, true, 'built-in Files view hidden');
-    assert.equal(api.defaultExplorer.activeViewId, 'codestudio.solutionExplorer.explorer');
-    await vscode.commands.executeCommand('codestudio.solutionExplorer.explorer.focus');
-
-    // Revert via the command (also offered in the view's "..." menu and the setting's description link).
-    await vscode.commands.executeCommand('codestudio.restoreDefaultExplorer');
-    assert.equal(config().inspect('defaultExplorer')!.globalValue, false);
-    assert.equal(api.defaultExplorer.filesViewHidden, false, 'Files view restored');
     assert.equal(api.defaultExplorer.activeViewId, 'codestudio.solutionExplorer');
-    await vscode.commands.executeCommand('workbench.explorer.fileView.focus');
     await vscode.commands.executeCommand('codestudio.solutionExplorer.focus');
 
-    // Toggling the checkbox in Settings works the same way.
-    await config().update('defaultExplorer', true, vscode.ConfigurationTarget.Global);
-    await api.defaultExplorer.sync();
-    assert.equal(api.defaultExplorer.filesViewHidden, true);
-    await config().update('defaultExplorer', false, vscode.ConfigurationTarget.Global);
-    await api.defaultExplorer.sync();
-    assert.equal(api.defaultExplorer.filesViewHidden, false);
-
+    // Show it in the Explorer sidebar (setting, command or the view's "..." menu); the Files view stays.
     await vscode.commands.executeCommand('codestudio.makeDefaultExplorer');
-    assert.equal(api.defaultExplorer.filesViewHidden, true);
+    assert.equal(config().inspect('defaultExplorer')!.globalValue, true);
+    assert.equal(api.defaultExplorer.activeViewId, 'codestudio.solutionExplorer.explorer');
+    await vscode.commands.executeCommand('codestudio.solutionExplorer.explorer.focus');
+    await vscode.commands.executeCommand('workbench.explorer.fileView.focus');
+    assert.equal(api.defaultExplorer.filesViewHidden, false, 'CodeXStudio never hides the Files view');
+
+    await vscode.commands.executeCommand('codestudio.restoreDefaultExplorer');
+    assert.equal(config().inspect('defaultExplorer')!.globalValue, false);
+    assert.equal(api.defaultExplorer.activeViewId, 'codestudio.solutionExplorer');
+    await config().update('defaultExplorer', undefined, vscode.ConfigurationTarget.Global);
   });
 
   await step('all contributed commands are registered', async () => {

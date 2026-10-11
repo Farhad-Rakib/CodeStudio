@@ -16,17 +16,10 @@ CodeXStudio is an independent project. It is not affiliated with Microsoft and d
 - Search the tree with the filter button. It matches folder and project names and keeps their parents visible.
 - Includes Refresh and Collapse All. The tree reloads automatically when the solution, the layout file or a project file changes.
 
-### Default explorer
-CodeXStudio makes **Solution Explorer the default explorer** out of the box. In workspaces that contain a `.sln`/`.slnx`, it appears in VS Code's Explorer sidebar and gets focus when the solution loads. The built-in Files view is hidden, and a one-time notification tells you what changed.
+### Where Solution Explorer appears
+By default, Solution Explorer has its own sidebar: click the CodeXStudio icon in the Activity Bar. It gets focus when a solution loads.
 
-To return to VS Code's normal layout, use any of these:
-- **Settings → Extensions → CodeXStudio → Default Explorer**: uncheck it, or click the "Restore VS Code Default Explorer" link in its description.
-- The **...** menu of Solution Explorer: *Restore VS Code Default Explorer*.
-- The Command Palette: *CodeXStudio: Restore VS Code Default Explorer*.
-
-When you switch back, the Files view returns and Solution Explorer moves to the CodeXStudio icon in the Activity Bar. *Make Solution Explorer the Default Explorer* turns it on again. In workspaces without a solution, CodeXStudio never hides the Files view. If it was hidden from an earlier .NET workspace, it is shown again there.
-
-> Turn the setting off before uninstalling CodeXStudio. VS Code doesn't let an extension run code on uninstall, so a Files view hidden by CodeXStudio stays hidden. If that happens, right-click the Explorer header and check **Folders**, or run *View: Reset View Locations*.
+To show it inside VS Code's Explorer sidebar instead, turn on **Settings → Extensions → CodeXStudio → Default Explorer**, or run *CodeXStudio: Show Solution Explorer in the Explorer Sidebar* (also in the view's **...** menu). It then appears below the built-in Files view. VS Code doesn't let extensions hide or move the Files view, so collapse it if you don't need it. *Move Solution Explorer to Its Own Sidebar* switches back.
 
 ### Build configuration (Debug / Release)
 ![The Solution Configuration picker listing Debug and Release for Any CPU, x64 and x86](images/screenshots/build-configuration.png)

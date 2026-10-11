@@ -1,9 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
+- Renamed to CodeXStudio (publisher `fhasancse`); display name "CodeXStudio - .NET Dev Assistant".
+- Solution Explorer now has its own sidebar by default. Showing it in the Explorer sidebar is optional (`codestudio.defaultExplorer`), and CodeXStudio no longer tries to hide the built-in Files view, which VS Code doesn't allow. If 0.1.0 hid it, it is shown again.
 - SQL database projects: database icon, .dacpac build-output node, Publish / Schema Compare / Deploy DACPAC through the optional mssql extension, and a warning for Microsoft.Build.Sql 1.x on .NET SDK 10.
 - Build configuration picker (Debug / Release / custom configurations and platforms from the solution) in the status bar; used by Build, Clean, Test, Run and Debug and saved per solution.
+
+## 0.1.0
+
+First release.
+
 - The solution layout (virtual folders, startup project) is stored in `.vscode/.codeStudio-settings`.
 - Solution Explorer icon colors are contributed theme colors (`codestudio.*Icon`) with dark/light/high-contrast defaults, customizable per theme.
 - Set as Startup Project, Start Debugging (via the C# extension's coreclr debugger) and Start Without Debugging (`dotnet run`), with a status bar item.

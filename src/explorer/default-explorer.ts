@@ -5,14 +5,14 @@ export const SETTING = 'defaultExplorer';
 export const ACTIVITY_BAR_VIEW = 'codestudio.solutionExplorer';
 export const EXPLORER_VIEW = 'codestudio.solutionExplorer.explorer';
 
+/** Set by CodeXStudio 0.1.0, which tried to hide the built-in Files view; cleared once it is shown again. */
 const FILES_HIDDEN_KEY = 'codestudio.filesViewHiddenByCodeStudio';
-const NOTIFIED_KEY = 'codestudio.defaultExplorerNotified';
 
 /**
- * Makes Solution Explorer the default explorer: it is shown inside VS Code's Explorer
- * sidebar (instead of the CodeXStudio activity bar container) and the built-in Files view is
- * hidden. Everything CodeXStudio changes is recorded so turning `codestudio.defaultExplorer`
- * off restores VS Code's default layout.
+ * Chooses where Solution Explorer appears: its own CodeXStudio container in the Activity Bar
+ * (default), or VS Code's Explorer sidebar when `codestudio.defaultExplorer` is on. CodeXStudio
+ * never hides the built-in Files view: VS Code does not let extensions hide or reorder it
+ * (`workbench.explorer.fileView.removeView` is a no-op for extensions since VS Code 1.141).
  */
 export class DefaultExplorerController implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
@@ -31,10 +31,10 @@ export class DefaultExplorerController implements vscode.Disposable {
   }
 
   get enabled(): boolean {
-    return vscode.workspace.getConfiguration('codestudio').get<boolean>(SETTING, true);
+    return vscode.workspace.getConfiguration('codestudio').get<boolean>(SETTING, false);
   }
 
-  /** True while CodeXStudio has hidden the built-in Files view. */
+  /** True only while a Files view hidden by CodeXStudio 0.1.0 has not been restored yet. */
   get filesViewHidden(): boolean {
     return this.globalState.get<boolean>(FILES_HIDDEN_KEY, false);
   }
@@ -64,15 +64,8 @@ export class DefaultExplorerController implements vscode.Disposable {
   }
 
   private async doSync(reveal: boolean): Promise<void> {
-    const takeOver = this.enabled && this.hasSolution();
-    if (takeOver && !this.filesViewHidden) {
-      await vscode.commands.executeCommand('workbench.explorer.fileView.removeView');
-      await this.globalState.update(FILES_HIDDEN_KEY, true);
-      this.logger.info('Solution Explorer is the default explorer; the built-in Files view is hidden.');
-      this.notifyOnce();
-    } else if (!takeOver && this.filesViewHidden) {
-      await this.restoreFilesView();
-    }
+    // Undo what CodeXStudio 0.1.0 may have done in older VS Code versions, once.
+    if (this.filesViewHidden) await this.restoreFilesView();
     if (reveal && this.hasSolution()) {
       await vscode.commands.executeCommand(`${this.activeViewId}.focus`);
     }
@@ -82,21 +75,7 @@ export class DefaultExplorerController implements vscode.Disposable {
     // 'open' re-adds the view to the Explorer container if it was removed.
     await vscode.commands.executeCommand('workbench.explorer.fileView.open');
     await this.globalState.update(FILES_HIDDEN_KEY, false);
-    this.logger.info('Restored the built-in Files view.');
-  }
-
-  private notifyOnce(): void {
-    if (this.globalState.get<boolean>(NOTIFIED_KEY)) return;
-    void this.globalState.update(NOTIFIED_KEY, true);
-    void vscode.window
-      .showInformationMessage(
-        'CodeXStudio: Solution Explorer is now your default explorer. You can switch back at any time in Settings → CodeXStudio → Default Explorer.',
-        'Keep',
-        'Restore VS Code Explorer',
-      )
-      .then(choice => {
-        if (choice === 'Restore VS Code Explorer') void this.setEnabled(false);
-      });
+    this.logger.info('Restored the built-in Files view hidden by an earlier CodeXStudio version.');
   }
 
   dispose(): void {

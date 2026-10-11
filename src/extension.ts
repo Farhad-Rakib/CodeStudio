@@ -85,8 +85,8 @@ export function activate(context: vscode.ExtensionContext): CodeXStudioApi {
     provider.setFilter('');
     setMessage(undefined);
   });
-  registerCommand(ctx, 'codestudio.restoreDefaultExplorer', 'Restore VS Code Default Explorer', () => defaultExplorer.setEnabled(false));
-  registerCommand(ctx, 'codestudio.makeDefaultExplorer', 'Make Solution Explorer the Default Explorer', () => defaultExplorer.setEnabled(true));
+  registerCommand(ctx, 'codestudio.restoreDefaultExplorer', 'Move Solution Explorer to Its Own Sidebar', () => defaultExplorer.setEnabled(false));
+  registerCommand(ctx, 'codestudio.makeDefaultExplorer', 'Show Solution Explorer in the Explorer Sidebar', () => defaultExplorer.setEnabled(true));
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
