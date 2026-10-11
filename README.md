@@ -4,6 +4,8 @@ CodeXStudio brings a Visual Studio-style .NET workflow to VS Code. It adds a Sol
 
 CodeXStudio is an independent project. It is not affiliated with Microsoft and does not use Visual Studio branding or assets.
 
+![Solution Explorer with virtual folders, a startup project, a SQL database project and its .dacpac, next to C# code in the CodeXStudio Dark theme](images/screenshots/solution-explorer.png)
+
 ## Features
 
 ### Solution Explorer
@@ -27,6 +29,8 @@ When you switch back, the Files view returns and Solution Explorer moves to the 
 > Turn the setting off before uninstalling CodeXStudio. VS Code doesn't let an extension run code on uninstall, so a Files view hidden by CodeXStudio stays hidden. If that happens, right-click the Explorer header and check **Folders**, or run *View: Reset View Locations*.
 
 ### Build configuration (Debug / Release)
+![The Solution Configuration picker listing Debug and Release for Any CPU, x64 and x86](images/screenshots/build-configuration.png)
+
 - The status bar shows the active solution configuration, e.g. **Debug** or **Release | x64**. Click it (or run **Select Build Configuration...**, also on the solution node's context menu) to switch.
 - The list comes from the solution file (`.sln` configuration section, or `.slnx` build types and platforms); Debug and Release are used when it declares none.
 - Build, Clean, Run Tests, Start Debugging and Start Without Debugging use it (`-c <Configuration>`, plus `-p:Platform=<Platform>` for platforms other than Any CPU). Restore doesn't depend on it. The choice is saved in `.vscode/.codeStudio-settings`.
@@ -68,6 +72,8 @@ Build, restore, clean and test run as VS Code tasks. They use the built-in `$msC
   - Files are never overwritten.
 
 ### NuGet Package Manager
+![NuGet Package Manager with Browse, Installed and Updates tabs and a project switcher](images/screenshots/nuget-package-manager.png)
+
 Open it with **Manage NuGet Packages** on a project, from the package icon on a project's *Packages* node, or from the Solution Explorer toolbar. It works like Visual Studio's NuGet window:
 - **Browse:** searches nuget.org, showing icons, authors, download counts and verified owners. Use *Include prerelease* to see preview versions too.
 - **Installed:** lists the project's packages, with a filter.
@@ -140,6 +146,8 @@ When it's on, the rules are enforced in four places:
 The editor checker is deliberately conservative: it's pattern-based, not a full C# parser. It may miss some declarations, such as tuple-typed members or lambda parameters. Roslyn, through the generated `.editorconfig`, is the complete check.
 
 ### Themes
+![The same solution and code in the CodeXStudio Light theme](images/screenshots/light-theme.png)
+
 **CodeXStudio Dark** and **CodeXStudio Light** appear in *Preferences: Color Theme*. They include semantic token colors for C# classes, interfaces, structs, enums, methods, properties, locals and parameters.
 
 ### Recommended settings
