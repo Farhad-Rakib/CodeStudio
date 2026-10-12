@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — 2026-10-12
+
+- NuGet Package Manager supports private and organization feeds (Azure Artifacts, GitHub Packages, ProGet, ...). Package sources come from the same `nuget.config` files `dotnet restore` uses (the project folder and its parents, plus the user config), including `<clear/>`, disabled sources and stored credentials.
+- Package source dropdown in the NuGet Package Manager: search one feed or "All" (merged results). The details pane shows which source a package came from.
+- Manage NuGet Package Sources (panel button or the **CodeXStudio: Manage NuGet Package Sources...** command): add a source to the solution's or the user's `nuget.config`, enable, disable or remove it, and set credentials. Changes go through `dotnet nuget ... source`.
+- When a feed asks for credentials, the panel offers to enter a user name and access token, saved in `nuget.config` (needed for restore) or in VS Code secret storage (browsing only). GitHub Packages errors explain the token requirements (`read:packages` scope, SSO authorization).
+- Installed packages and update checks work on feeds that don't support exact-ID search, such as GitHub Packages.
+
 ## 0.3.0 — 2026-10-12
 
 - Monokai and Monokai Dimmed color themes.

@@ -6,7 +6,9 @@ import { DotnetRunner } from '../dotnet/dotnet-runner';
 import { Logger } from '../logger';
 import { SolutionManager } from '../solution-manager';
 import { SolutionProject } from '../solution/solution-model';
-import { NuGetClient } from './nuget-client';
+import { NuGetAuthError } from './nuget-client';
+import { NuGetFeeds } from './nuget-feeds';
+import { PackageSource } from './nuget-sources';
 import { buildRows, PackageRow, PackageSummary, sortVersionsDescending } from './nuget-model';
 import { renderNuGetHtml } from './nuget-webview-html';
 
@@ -21,6 +23,9 @@ export type WebviewMessage =
   | { type: 'updateAll' }
   | { type: 'refresh' }
   | { type: 'switchProject'; key: string }
+  | { type: 'setSource'; url: string }
+  | { type: 'manageSources' }
+  | { type: 'credentials'; url: string }
   | { type: 'openUrl'; url: string };
 
 /** Messages the extension posts to the webview. */
@@ -30,7 +35,8 @@ export type PanelMessage =
   | { type: 'results'; query: string; total: number; items: (PackageSummary & { installedVersion?: string })[] }
   | { type: 'details'; pkg: PackageSummary; versions: string[]; installedVersion?: string; central: boolean }
   | { type: 'busy'; text?: string }
-  | { type: 'notice'; level: 'info' | 'error'; text: string };
+  | { type: 'sources'; sources: { name: string; url: string }[]; selected: string }
+  | { type: 'notice'; level: 'info' | 'error'; text: string; authUrl?: string };
 
 /**
  * Visual Studio-style NuGet Package Manager for one project: Browse (nuget.org search),
@@ -44,6 +50,10 @@ export class NuGetPanel implements vscode.Disposable {
   private rows: PackageRow[] = [];
   private readonly summaries = new Map<string, PackageSummary>();
   private busy = false;
+  private sources: PackageSource[] = [];
+  /** Selected source URL; '' searches all enabled sources. */
+  private sourceUrl = '';
+  private lastQuery = '';
   private disposed = false;
   /** Every message posted to the webview (inspected by integration tests). */
   readonly posted: PanelMessage[] = [];
@@ -74,6 +84,7 @@ export class NuGetPanel implements vscode.Disposable {
     this.disposables.push(
       this.panel.webview.onDidReceiveMessage(m => void this.handleMessage(m as WebviewMessage)),
       this.panel.onDidDispose(() => this.dispose()),
+      deps.feeds.onDidChange(() => void this.handleMessage({ type: 'refresh' }).then(() => this.handleMessage({ type: 'search', query: this.lastQuery }))),
       deps.manager.onDidChange(() => {
         // The project may have been removed or its packages edited outside the panel.
         const still = deps.manager.solution?.model.projects.find(p => p.key === this.project.key);
@@ -107,10 +118,12 @@ export class NuGetPanel implements vscode.Disposable {
       switch (m.type) {
         case 'ready':
           this.postProject();
+          await this.loadSources();
           await this.refreshInstalled();
           return await this.search('');
         case 'refresh':
           this.summaries.clear();
+          await this.loadSources();
           await this.refreshInstalled();
           return;
         case 'search':
@@ -130,6 +143,18 @@ export class NuGetPanel implements vscode.Disposable {
           return await this.updateAll();
         case 'switchProject':
           return await this.switchProject(m.key);
+        case 'setSource':
+          this.sourceUrl = this.sources.some(s => s.url === m.url) ? m.url : '';
+          this.summaries.clear();
+          this.postSources();
+          return await this.search(this.lastQuery);
+        case 'manageSources':
+          return await this.deps.feeds.manage(this.projectDir);
+        case 'credentials': {
+          const source = this.sources.find(s => s.url === m.url);
+          if (source && (await this.deps.feeds.promptCredentials(source, this.projectDir))) this.post({ type: 'notice', level: 'info', text: `Saved credentials for ${source.name}.` });
+          return;
+        }
         case 'openUrl':
           if (typeof m.url === 'string' && /^https:\/\//i.test(m.url)) await vscode.env.openExternal(vscode.Uri.parse(m.url));
           return;
@@ -147,11 +172,52 @@ export class NuGetPanel implements vscode.Disposable {
     this.post({ type: 'project', project: { key: this.project.key, name: this.project.name }, projects, prerelease: this.prerelease });
   }
 
+  private get projectDir(): string {
+    return path.dirname(this.project.absolutePath);
+  }
+
+  private async loadSources(): Promise<void> {
+    this.sources = await this.deps.feeds.browsable(this.projectDir);
+    if (!this.sources.some(s => s.url === this.sourceUrl)) this.sourceUrl = '';
+    this.postSources();
+  }
+
+  private postSources(): void {
+    this.post({ type: 'sources', sources: this.sources.map(s => ({ name: s.name, url: s.url })), selected: this.sourceUrl });
+  }
+
+  /** The selected source first, then the others (installed packages may come from any source). */
+  private orderedSources(onlySelected: boolean): PackageSource[] {
+    const selected = this.sources.filter(s => s.url === this.sourceUrl);
+    if (onlySelected && selected.length) return selected;
+    return [...selected, ...this.sources.filter(s => s.url !== this.sourceUrl)];
+  }
+
+  private reportSourceError(source: PackageSource, err: unknown): void {
+    this.deps.logger.warn(`NuGet source ${source.name} failed: ${(err as Error).message}`);
+    const auth = err instanceof NuGetAuthError;
+    this.post({
+      type: 'notice',
+      level: 'error',
+      text: auth ? `${source.name} requires credentials.` : `${source.name}: ${(err as Error).message}`,
+      authUrl: auth ? source.url : undefined,
+    });
+  }
+
   private async summary(id: string): Promise<PackageSummary | undefined> {
     const key = id.toLowerCase();
     if (!this.summaries.has(key)) {
-      const pkg = await this.deps.client.getPackage(id, true);
-      if (pkg) this.summaries.set(key, pkg);
+      for (const source of this.orderedSources(false)) {
+        try {
+          const pkg = await (await this.deps.feeds.client(source)).getPackage(id, true);
+          if (pkg) {
+            this.summaries.set(key, { ...pkg, sourceName: source.name, sourceUrl: source.url });
+            break;
+          }
+        } catch (err) {
+          this.deps.logger.warn(`NuGet lookup of ${id} on ${source.name} failed: ${(err as Error).message}`);
+        }
+      }
     }
     return this.summaries.get(key);
   }
@@ -175,10 +241,34 @@ export class NuGetPanel implements vscode.Disposable {
   }
 
   private async search(query: string): Promise<void> {
-    this.post({ type: 'busy', text: 'Searching nuget.org...' });
+    this.lastQuery = query;
+    const targets = this.orderedSources(true);
+    if (targets.length === 0) {
+      this.post({ type: 'results', query, total: 0, items: [] });
+      this.post({ type: 'notice', level: 'error', text: 'No enabled http(s) package sources. Use "Package sources" to add one.' });
+      return;
+    }
+    this.post({ type: 'busy', text: `Searching ${targets.length === 1 ? targets[0].name : 'all sources'}...` });
     try {
-      const { total, items } = await this.deps.client.search(query, { take: 30, prerelease: this.prerelease });
-      for (const item of items) this.summaries.set(item.id.toLowerCase(), item);
+      const settled = await Promise.allSettled(targets.map(async s => ({ s, r: await (await this.deps.feeds.client(s)).search(query, { take: 30, prerelease: this.prerelease }) })));
+      const items: PackageSummary[] = [];
+      const seen = new Set<string>();
+      let total = 0;
+      settled.forEach((res, i) => {
+        if (res.status === 'rejected') return this.reportSourceError(targets[i], res.reason);
+        total += res.value.r.total;
+        for (const item of res.value.r.items) {
+          const key = item.id.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const tagged = { ...item, sourceName: res.value.s.name, sourceUrl: res.value.s.url };
+          this.summaries.set(key, tagged);
+          items.push(tagged);
+        }
+      });
+      if (settled.every(x => x.status === 'rejected') && targets.length > 1) {
+        this.post({ type: 'notice', level: 'error', text: 'All package sources failed; see the CodeXStudio log.' });
+      }
       this.post({ type: 'results', query, total, items: items.map(i => ({ ...i, installedVersion: this.installedVersion(i.id) })) });
     } finally {
       this.post({ type: 'busy' });
@@ -283,5 +373,5 @@ export interface NuGetDeps {
   readonly manager: SolutionManager;
   readonly runner: DotnetRunner;
   readonly logger: Logger;
-  readonly client: NuGetClient;
+  readonly feeds: NuGetFeeds;
 }

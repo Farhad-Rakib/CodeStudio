@@ -69,6 +69,9 @@ export function renderNuGetHtml(cspSource: string, nonce: string): string {
 <div class="toolbar">
   <input id="search" type="search" placeholder="Search (e.g. Serilog, Dapper, Polly)" aria-label="Search packages">
   <label><input id="prerelease" type="checkbox"> Include prerelease</label>
+  <label class="meta" for="source">Package source:</label>
+  <select id="source" aria-label="Package source"><option value="">All</option></select>
+  <button id="manageSources" class="action secondary" title="Add, remove, enable or disable package sources (nuget.config)">Package sources</button>
   <button id="refresh" class="action secondary" title="Refresh">Refresh</button>
   <button id="updateAll" class="action" hidden>Update all</button>
 </div>
@@ -100,7 +103,11 @@ export function renderNuGetHtml(cspSource: string, nonce: string): string {
     return img;
   };
   const downloads = n => n >= 1e9 ? (n / 1e9).toFixed(1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n || 0);
-  const setStatus = (text, error) => { $('status').textContent = text || ''; $('status').className = error ? 'error' : ''; };
+  const setStatus = (text, error, authUrl) => {
+    $('status').replaceChildren(text || '');
+    $('status').className = error ? 'error' : '';
+    if (authUrl) $('status').append(' ', el('a', { text: 'Enter credentials', onclick: () => vscode.postMessage({ type: 'credentials', url: authUrl }) }));
+  };
 
   function currentItems() {
     if (state.tab === 'browse') return state.results.map(p => ({ id: p.id, summary: p, installed: p.installedVersion, latest: p.version }));
@@ -185,13 +192,14 @@ export function renderNuGetHtml(cspSource: string, nonce: string): string {
         el('dt', { text: 'Authors' }), el('dd', { text: p.authors || '—' }),
         el('dt', { text: 'Downloads' }), el('dd', { text: downloads(p.totalDownloads) }),
         el('dt', { text: 'Tags' }), el('dd', { text: (p.tags || []).join(', ') || '—' }),
-        el('dt', { text: 'Links' }), el('dd', {}, link('https://www.nuget.org/packages/' + encodeURIComponent(p.id), 'nuget.org'), p.projectUrl ? ' · ' : null, link(p.projectUrl, 'Project site'), p.licenseUrl ? ' · ' : null, link(p.licenseUrl, 'License'))));
+        el('dt', { text: 'Source' }), el('dd', { text: p.sourceName || '—' }),
+        el('dt', { text: 'Links' }), el('dd', {}, (p.sourceUrl || '').toLowerCase().startsWith('https://api.nuget.org/') ? link('https://www.nuget.org/packages/' + encodeURIComponent(p.id), 'nuget.org') : null, p.projectUrl ? ' · ' : null, link(p.projectUrl, 'Project site'), p.licenseUrl ? ' · ' : null, link(p.licenseUrl, 'License'))));
   }
 
   function setTab(tab) {
     state.tab = tab;
     for (const t of document.querySelectorAll('.tab')) t.setAttribute('aria-selected', String(t.dataset.tab === tab));
-    $('search').placeholder = tab === 'browse' ? 'Search nuget.org (e.g. Serilog, Dapper, Polly)' : 'Filter installed packages';
+    $('search').placeholder = tab === 'browse' ? 'Search packages (e.g. Serilog, Dapper, Polly)' : 'Filter installed packages';
     renderCounts();
     renderList();
   }
@@ -212,6 +220,8 @@ export function renderNuGetHtml(cspSource: string, nonce: string): string {
     vscode.postMessage({ type: 'refresh' });
     if (state.tab === 'browse') vscode.postMessage({ type: 'search', query: state.query });
   });
+  $('source').addEventListener('change', e => vscode.postMessage({ type: 'setSource', url: e.target.value }));
+  $('manageSources').addEventListener('click', () => vscode.postMessage({ type: 'manageSources' }));
   $('updateAll').addEventListener('click', () => vscode.postMessage({ type: 'updateAll' }));
   $('project').addEventListener('change', e => vscode.postMessage({ type: 'switchProject', key: e.target.value }));
   for (const t of document.querySelectorAll('.tab')) t.addEventListener('click', () => setTab(t.dataset.tab));
@@ -229,7 +239,13 @@ export function renderNuGetHtml(cspSource: string, nonce: string): string {
       case 'results': if (msg.query === state.query) { state.results = msg.items; if (state.tab === 'browse') renderList(); } break;
       case 'details': if (msg.pkg.id.toLowerCase() === (state.selectedId || '').toLowerCase()) renderDetails(msg); break;
       case 'busy': setStatus(msg.text); for (const b of document.querySelectorAll('button.action')) b.disabled = !!msg.text || (b.id === 'primaryAction' && b.textContent === 'Installed'); break;
-      case 'notice': setStatus(msg.text, msg.level === 'error'); break;
+      case 'notice': setStatus(msg.text, msg.level === 'error', msg.authUrl); break;
+      case 'sources': {
+        const sel = $('source');
+        sel.replaceChildren(el('option', { value: '', text: 'All' }), ...msg.sources.map(s => el('option', { value: s.url, text: s.name, title: s.url })));
+        sel.value = msg.selected;
+        break;
+      }
     }
   });
   vscode.postMessage({ type: 'ready' });

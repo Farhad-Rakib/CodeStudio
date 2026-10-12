@@ -2,14 +2,21 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { addProjectReferenceArgs } from '../dotnet/dotnet-args';
 import { ExplorerNode } from '../explorer/solution-tree-item';
-import { NuGetClient } from '../nuget/nuget-client';
+import { NuGetFeeds } from '../nuget/nuget-feeds';
 import { NuGetPanel } from '../nuget/nuget-panel';
 import { CommandContext, registerCommand, requireSolution, resolveProject, UserFacingError } from './command-context';
 import { runDotnetTarget } from './build-solution';
 
-const nugetClient = new NuGetClient();
-
 export function registerProjectCommands(ctx: CommandContext): void {
+  const feeds = new NuGetFeeds(ctx.extension.secrets, ctx.runner, ctx.logger);
+  ctx.extension.subscriptions.push(feeds);
+
+  registerCommand(ctx, 'codestudio.manageNuGetSources', 'Manage NuGet Package Sources', async () => {
+    const dir = ctx.manager.solution?.model.directory ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!dir) throw new UserFacingError('Open a solution or folder first.');
+    await feeds.manage(dir);
+  });
+
   registerCommand(ctx, 'codestudio.openProjectFile', 'Open Project File', async (node?: unknown) => {
     const project = await resolveProject(ctx, node, 'Select a project file to open');
     if (!project) return;
@@ -60,7 +67,7 @@ export function registerProjectCommands(ctx: CommandContext): void {
     if (project.kind !== 'csharp' && project.kind !== 'fsharp' && project.kind !== 'vb') {
       throw new UserFacingError(`${project.name} does not support NuGet package references.`);
     }
-    return NuGetPanel.open({ manager: ctx.manager, runner: ctx.runner, logger: ctx.logger, client: nugetClient }, project);
+    return NuGetPanel.open({ manager: ctx.manager, runner: ctx.runner, logger: ctx.logger, feeds }, project);
   });
 
   registerCommand(ctx, 'codestudio.openFile', 'Open', async (node?: ExplorerNode) => {

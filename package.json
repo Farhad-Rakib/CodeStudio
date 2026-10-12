@@ -2,7 +2,7 @@
   "name": "codeXstudio",
   "displayName": "CodeXStudio - .NET Dev Assistant",
   "description": "A Visual Studio-inspired Solution Explorer, virtual solution folders, .NET CLI commands and themes for VS Code.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "preview": true,
   "publisher": "fhasancse",
   "icon": "images/icon.png",
@@ -255,6 +255,12 @@
         "title": "Manage NuGet Packages...",
         "category": "CodeXStudio",
         "icon": "$(package)"
+      },
+      {
+        "command": "codestudio.manageNuGetSources",
+        "title": "Manage NuGet Package Sources...",
+        "category": "CodeXStudio",
+        "icon": "$(settings-gear)"
       },
       {
         "command": "codestudio.runTests",

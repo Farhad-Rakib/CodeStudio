@@ -12,6 +12,9 @@ export interface PackageSummary {
   readonly verified: boolean;
   readonly tags: readonly string[];
   readonly versions: readonly string[];
+  /** Package source the summary came from (set by the panel). */
+  readonly sourceName?: string;
+  readonly sourceUrl?: string;
 }
 
 export interface InstalledPackage {

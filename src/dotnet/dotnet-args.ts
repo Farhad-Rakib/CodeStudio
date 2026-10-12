@@ -152,3 +152,40 @@ export function targetPathArgs(project: string, targetFramework?: string, config
   if (platform) args.push(platform);
   return args;
 }
+
+const NUGET_SOURCE_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9 _.()-]{0,99}$/;
+
+function sourceNameArg(name: string): string {
+  if (!NUGET_SOURCE_NAME_RE.test(name)) throw new DotnetArgumentError(`"${name}" is not a valid package source name.`);
+  return name;
+}
+
+function configFileArgs(configFile?: string): string[] {
+  if (configFile === undefined) return [];
+  requireAbsolute(configFile, 'NuGet config file');
+  return ['--configfile', configFile];
+}
+
+function credentialArgs(username?: string, password?: string): string[] {
+  if (!password) return [];
+  if (/[\x00-\x1f]/.test(password) || (username && /[\x00-\x1f]/.test(username))) throw new DotnetArgumentError('Credentials cannot contain control characters.');
+  // Encrypted passwords are Windows-only; clear text works on every platform.
+  return ['-u', username || 'user', '-p', password, '--store-password-in-clear-text'];
+}
+
+/** dotnet nuget add source <url> -n <name> [-u -p --store-password-in-clear-text] [--configfile <file>] */
+export function addNuGetSourceArgs(url: string, name: string, opts: { username?: string; password?: string; configFile?: string } = {}): string[] {
+  if (!/^https?:\/\/[^\s]+$/i.test(url)) throw new DotnetArgumentError(`"${url}" is not a valid http(s) feed URL.`);
+  return ['nuget', 'add', 'source', url, '-n', sourceNameArg(name), ...credentialArgs(opts.username, opts.password), ...configFileArgs(opts.configFile)];
+}
+
+/** dotnet nuget update source <name> -u -p --store-password-in-clear-text [--configfile <file>] */
+export function updateNuGetSourceCredentialsArgs(name: string, username: string | undefined, password: string, configFile?: string): string[] {
+  if (!password) throw new DotnetArgumentError('A password or token is required.');
+  return ['nuget', 'update', 'source', sourceNameArg(name), ...credentialArgs(username, password), ...configFileArgs(configFile)];
+}
+
+/** dotnet nuget remove|enable|disable source <name> [--configfile <file>] */
+export function nugetSourceVerbArgs(verb: 'remove' | 'enable' | 'disable', name: string, configFile?: string): string[] {
+  return ['nuget', verb, 'source', sourceNameArg(name), ...configFileArgs(configFile)];
+}
