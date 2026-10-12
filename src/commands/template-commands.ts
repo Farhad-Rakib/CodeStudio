@@ -1,11 +1,12 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { addProjectToSolutionArgs, newProjectArgs } from '../dotnet/dotnet-args';
+import { addProjectToSolutionArgs, addProjectToSolutionFolderArgs, newProjectArgs } from '../dotnet/dotnet-args';
 import { ExplorerNode } from '../explorer/solution-tree-item';
-import { normalizeRelativePath } from '../solution/solution-model';
+import { addSolutionItem, solutionFolderPath } from '../solution/solution-folder-writer';
+import { normalizeRelativePath, SolutionFolder, SolutionModel, SolutionProject } from '../solution/solution-model';
 import { assignProject } from '../storage/layout-store';
-import { computeNamespace, rankTemplates, validateTypeName } from '../templates/item-templates';
+import { computeNamespace, ItemTemplate, rankTemplates, toIdentifier, validateTypeName } from '../templates/item-templates';
 import {
   FALLBACK_PROJECT_TEMPLATES,
   parseTemplateList,
@@ -14,7 +15,7 @@ import {
   validateProjectName,
   validateTemplateShortName,
 } from '../templates/project-templates';
-import { CommandContext, registerCommand, requireSolution, resolveProject, UserFacingError } from './command-context';
+import { CommandContext, projectsInSolutionFolder, registerCommand, requireSolution, resolveProject, solutionFolderTarget, UserFacingError } from './command-context';
 
 async function listProjectTemplates(ctx: CommandContext): Promise<ProjectTemplate[]> {
   try {
@@ -45,11 +46,58 @@ async function findProjectFile(dir: string, name: string): Promise<string> {
   return path.join(dir, found);
 }
 
+/** "Add > New Item" on a solution folder without a project: the file goes to <solution dir>/<folder path>/ and is listed in the folder. */
+async function newSolutionItem(ctx: CommandContext, model: SolutionModel, folder: SolutionFolder): Promise<void> {
+  const emptyFile = { label: '$(file) Empty file', description: 'any name and extension (README.md, notes.txt, ...)', template: undefined as ItemTemplate | undefined };
+  const pick = await vscode.window.showQuickPick(
+    [...rankTemplates({ packages: [], isTestProject: false }).map(t => ({ label: t.label, description: t.description, template: t as ItemTemplate | undefined })), emptyFile],
+    { title: `New Solution Item in "${folder.name}"`, placeHolder: 'Select an item template', matchOnDescription: true },
+  );
+  if (!pick) return;
+  const template = pick.template;
+  const folderSegments = solutionFolderPath(model, folder.id).split('/');
+  const dir = path.join(model.directory, ...folderSegments);
+  const fileName = (raw: string) => (template ? `${raw.trim().replace(/\.cs$/i, '')}.cs` : raw.trim());
+  const name = (await vscode.window.showInputBox({
+    title: template ? `New ${template.label}` : 'New file',
+    prompt: `File is created in ${vscode.workspace.asRelativePath(dir)} and listed under "${folder.name}"`,
+    value: template?.defaultName ?? 'README.md',
+    validateInput: async v => {
+      const err = template ? validateTypeName(v) : /^[^\\/:*?"<>|\x00-\x1f]+$/.test(v.trim()) && !/^\.+$/.test(v.trim()) ? undefined : 'Enter a file name such as README.md.';
+      if (err) return err;
+      try {
+        await fs.access(path.join(dir, fileName(v)));
+        return 'A file with this name already exists.';
+      } catch {
+        return undefined;
+      }
+    },
+  }))?.trim();
+  if (!name) return;
+  const file = path.join(dir, fileName(name));
+  const namespace = [model.name, ...folderSegments].flatMap(s => s.split('.')).map(toIdentifier).join('.');
+  const content = template ? template.render({ namespace, name: name.replace(/\.cs$/i, '') }) : '';
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(file, content, { encoding: 'utf8', flag: 'wx' });
+  try {
+    const text = await fs.readFile(model.path, 'utf8');
+    const rel = normalizeRelativePath(path.relative(model.directory, file));
+    await fs.writeFile(model.path, addSolutionItem(model.format, text, model, folder.id, rel), 'utf8');
+  } catch (err) {
+    await fs.rm(file, { force: true });
+    throw err;
+  }
+  ctx.logger.info(`Created solution item ${file} in folder "${folder.name}".`);
+  await ctx.manager.reload();
+  await vscode.window.showTextDocument(vscode.Uri.file(file));
+}
+
 export function registerTemplateCommands(ctx: CommandContext): void {
   registerCommand(ctx, 'codestudio.newProject', 'New Project', async (node?: unknown) => {
     const { model } = requireSolution(ctx);
     const n = node as ExplorerNode | undefined;
     const targetFolderId = n?.type === 'structure' && n.node.kind === 'virtualFolder' ? n.node.folder.id : undefined;
+    const solutionFolder = solutionFolderTarget(model, node);
 
     const templates = await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Window, title: 'Loading .NET templates...' },
@@ -104,7 +152,10 @@ export function registerTemplateCommands(ctx: CommandContext): void {
       async () => {
         await ctx.runner.exec(newProjectArgs(template.shortName, name, finalDir), model.directory, 300000);
         const file = await findProjectFile(finalDir, name);
-        await ctx.runner.exec(addProjectToSolutionArgs(model.path, file), model.directory);
+        await ctx.runner.exec(
+          solutionFolder ? addProjectToSolutionFolderArgs(model.path, file, solutionFolder.path) : addProjectToSolutionArgs(model.path, file),
+          model.directory,
+        );
         return file;
       },
     );
@@ -125,6 +176,21 @@ export function registerTemplateCommands(ctx: CommandContext): void {
     if (n?.type === 'physicalFolder') {
       project = n.project;
       targetDir = n.uri.fsPath;
+    } else if (n?.type === 'structure' && n.node.kind === 'solutionFolder') {
+      // As in Visual Studio: add the file to a project inside the folder, or as a solution item of the folder itself.
+      const { model } = requireSolution(ctx);
+      const folder = n.node.folder;
+      const candidates = projectsInSolutionFolder(model, folder.id).filter(p => p.kind === 'csharp');
+      const asItem = { label: '$(file-add) Solution item', description: `file in "${folder.name}", not part of any project`, project: undefined as SolutionProject | undefined };
+      const choice = candidates.length === 0 ? asItem : await vscode.window.showQuickPick(
+        [...candidates.map(p => ({ label: p.name, description: p.relativePath, project: p as SolutionProject | undefined })), asItem],
+        { placeHolder: `Add a new item to "${folder.name}": pick a project, or add a solution item`, matchOnDescription: true },
+      );
+      if (!choice) return;
+      if (!choice.project) return newSolutionItem(ctx, model, folder);
+      project = choice.project;
+      if (!project) return;
+      targetDir = path.dirname(project.absolutePath);
     } else {
       project = await resolveProject(ctx, node, 'Add a new item to which project?');
       if (!project) return;

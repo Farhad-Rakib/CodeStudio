@@ -1,10 +1,10 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { addProjectToSolutionArgs, SolutionVerb, targetVerbArgs } from '../dotnet/dotnet-args';
+import { addProjectToSolutionArgs, addProjectToSolutionFolderArgs, SolutionVerb, targetVerbArgs } from '../dotnet/dotnet-args';
 import { cwdFor } from '../dotnet/dotnet-runner';
 import { SdkNotFoundError } from '../dotnet/sdk-detection';
 import { standardsConfig, standardsEnabled } from '../standards/standards-controller';
-import { CommandContext, registerCommand, requireSolution } from './command-context';
+import { CommandContext, registerCommand, requireSolution, solutionFolderTarget } from './command-context';
 import { warnIncompatibleSqlProjects } from './sql-commands';
 
 const VERB_TITLES: Record<Exclude<SolutionVerb, 'test'>, string> = { build: 'Build Solution', restore: 'Restore Solution', clean: 'Clean Solution' };
@@ -51,8 +51,9 @@ export function registerSolutionCommands(ctx: CommandContext): void {
     });
   }
 
-  registerCommand(ctx, 'codestudio.addExistingProject', 'Add Existing Project', async () => {
+  registerCommand(ctx, 'codestudio.addExistingProject', 'Add Existing Project', async (node?: unknown) => {
     const { model } = requireSolution(ctx);
+    const solutionFolder = solutionFolderTarget(model, node);
     const picked = await vscode.window.showOpenDialog({
       canSelectMany: true,
       defaultUri: vscode.Uri.file(model.directory),
@@ -67,7 +68,10 @@ export function registerSolutionCommands(ctx: CommandContext): void {
         continue;
       }
       // `dotnet sln add` edits the solution with the SDK's own serializer; CodeXStudio never rewrites .sln text itself.
-      await ctx.runner.exec(addProjectToSolutionArgs(model.path, uri.fsPath), model.directory);
+      await ctx.runner.exec(
+        solutionFolder ? addProjectToSolutionFolderArgs(model.path, uri.fsPath, solutionFolder.path) : addProjectToSolutionArgs(model.path, uri.fsPath),
+        model.directory,
+      );
       void vscode.window.showInformationMessage(`CodeXStudio: Added ${path.basename(uri.fsPath)} to ${model.name}.`);
     }
     await ctx.manager.reload();

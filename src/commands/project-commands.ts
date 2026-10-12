@@ -72,6 +72,7 @@ export function registerProjectCommands(ctx: CommandContext): void {
     let uri: vscode.Uri | undefined;
     if (node?.type === 'file' || node?.type === 'physicalFolder' || (node?.type === 'buildOutput' && node.exists)) uri = node.uri;
     else if (node?.type === 'structure' && node.node.kind === 'project') uri = vscode.Uri.file(node.node.project.absolutePath);
+    else if (node?.type === 'structure' && node.node.kind === 'solutionItem') uri = vscode.Uri.file(node.node.filePath);
     if (uri) await vscode.commands.executeCommand('revealFileInOS', uri);
   });
 }

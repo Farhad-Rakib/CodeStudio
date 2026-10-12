@@ -22,9 +22,13 @@ export class SolutionManager implements vscode.Disposable {
   private readonly projectCache = new Map<string, Promise<ProjectInfo>>();
   private watchers: vscode.Disposable[] = [];
   private reloadTimer: NodeJS.Timeout | undefined;
+  private filesTimer: NodeJS.Timeout | undefined;
   private layoutWriteInProgress = 0;
   private readonly changed = new vscode.EventEmitter<void>();
   readonly onDidChange = this.changed.event;
+  private readonly filesChanged = new vscode.EventEmitter<void>();
+  /** Files were created or deleted under the solution directory (the solution itself is unchanged). */
+  readonly onDidChangeFiles = this.filesChanged.event;
 
   constructor(private readonly state: vscode.Memento, private readonly logger: Logger) {}
 
@@ -136,6 +140,19 @@ export class SolutionManager implements vscode.Disposable {
     add(new vscode.RelativePattern(dir, path.basename(solutionPath)), 'solution');
     add(new vscode.RelativePattern(path.dirname(layoutPath), path.basename(layoutPath)), 'layout');
     add(new vscode.RelativePattern(dir, '**/*.{csproj,fsproj,vbproj,sqlproj}'), 'project');
+
+    // Files created or deleted outside the Solution Explorer (terminal, dotnet new, git, other extensions):
+    // refresh the tree without re-reading the solution. Build output churn is ignored.
+    const ignored = /[\\/](bin|obj|\.git|\.vs|node_modules)([\\/]|$)/i;
+    const files = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(dir, '**/*'));
+    const onFile = (uri: vscode.Uri) => {
+      if (ignored.test(`/${path.relative(dir, uri.fsPath)}`)) return;
+      clearTimeout(this.filesTimer);
+      this.filesTimer = setTimeout(() => this.filesChanged.fire(), 300);
+    };
+    files.onDidCreate(onFile);
+    files.onDidDelete(onFile);
+    this.watchers.push(files);
   }
 
   private disposeWatchers(): void {
@@ -145,7 +162,9 @@ export class SolutionManager implements vscode.Disposable {
 
   dispose(): void {
     clearTimeout(this.reloadTimer);
+    clearTimeout(this.filesTimer);
     this.disposeWatchers();
     this.changed.dispose();
+    this.filesChanged.dispose();
   }
 }

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { registerSolutionCommands } from './commands/build-solution';
 import { CommandContext, registerCommand } from './commands/command-context';
+import { registerFileCommands } from './commands/file-commands';
 import { registerFolderCommands } from './commands/folder-commands';
 import { autoOpen, registerOpenSolutionCommands } from './commands/open-solution';
 import { registerProjectCommands } from './commands/project-commands';
@@ -50,6 +51,7 @@ export function activate(context: vscode.ExtensionContext): CodeXStudioApi {
       canSelectMany: true,
     }),
   );
+  treeViews.forEach(v => context.subscriptions.push(v.onDidChangeSelection(e => (provider.selection = e.selection))));
   const setMessage = (message: string | undefined) => treeViews.forEach(v => (v.message = message));
   let workspaceHasSolution = false;
   const defaultExplorer = new DefaultExplorerController(context.globalState, logger, () => workspaceHasSolution || !!manager.solution);
@@ -64,6 +66,7 @@ export function activate(context: vscode.ExtensionContext): CodeXStudioApi {
   registerSolutionCommands(ctx);
   registerProjectCommands(ctx);
   registerFolderCommands(ctx);
+  registerFileCommands(ctx);
   registerSettingsCommands(ctx);
   registerTemplateCommands(ctx);
   registerStandardsCommands(ctx, standards);

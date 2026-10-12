@@ -2,11 +2,24 @@ import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import * as vscode from 'vscode';
 import { addProjectToSolutionFolderArgs, removeProjectFromSolutionArgs } from '../dotnet/dotnet-args';
-import { SolutionFolder } from '../solution/solution-model';
-import { addSolutionFolder, solutionFolderPath, validateSolutionFolderName } from '../solution/solution-folder-writer';
+import * as path from 'path';
+import { normalizeRelativePath, SolutionFolder, SolutionModel, SolutionProject } from '../solution/solution-model';
+import { deleteEntries, FileOperationError, renameEntry } from '../explorer/file-operations';
+import { isSameOrInside, stemSelection, validateEntryName } from '../explorer/file-names';
+import {
+  addSolutionFolder,
+  addSolutionItem,
+  folderAndDescendants,
+  removeSolutionFolder,
+  removeSolutionItem,
+  renameSolutionFolder,
+  solutionFolderPath,
+  validateSolutionFolderName,
+} from '../solution/solution-folder-writer';
 import { ExplorerNode } from '../explorer/solution-tree-item';
 import {
   assignProject,
+  setStartupProject,
   createFolder,
   deleteFolder,
   descendantIds,
@@ -37,7 +50,167 @@ function solutionFolderOf(node: unknown): SolutionFolder | undefined {
   return n?.type === 'structure' && n.node.kind === 'solutionFolder' ? n.node.folder : undefined;
 }
 
+/** Removes projects from the solution with the dotnet CLI and forgets their layout entries. */
+async function removeProjectsFromSolution(ctx: CommandContext, projects: readonly SolutionProject[]): Promise<void> {
+  const { model } = requireSolution(ctx);
+  for (const p of projects) await ctx.runner.exec(removeProjectFromSolutionArgs(model.path, p.absolutePath), model.directory);
+  const keys = new Set(projects.map(p => p.key));
+  await ctx.manager.updateLayout(l => {
+    let next = [...keys].reduce((acc, k) => assignProject(acc, k, undefined), l);
+    if (next.startupProject && keys.has(next.startupProject)) next = setStartupProject(next, undefined);
+    return next;
+  });
+}
+
+interface SolutionItemRef { readonly folderId: string; readonly filePath: string }
+
+function solutionItemsOf(ctx: CommandContext, node: unknown, selected: unknown): SolutionItemRef[] {
+  const clicked = (node as ExplorerNode | undefined) ?? ctx.provider.selection[0];
+  let nodes = Array.isArray(selected) ? (selected as ExplorerNode[]) : clicked ? [clicked] : [];
+  if (clicked && !nodes.includes(clicked)) nodes = [clicked];
+  return nodes.flatMap(n => (n.type === 'structure' && n.node.kind === 'solutionItem' ? [{ folderId: n.node.folderId, filePath: n.node.filePath }] : []));
+}
+
+const itemPath = (model: SolutionModel, filePath: string) => normalizeRelativePath(path.relative(model.directory, filePath));
+
+/** Applies solution-item edits to the solution file in one write. */
+async function editSolutionText(ctx: CommandContext, edit: (text: string, model: SolutionModel) => string): Promise<void> {
+  const { model } = requireSolution(ctx);
+  const text = await fs.readFile(model.path, 'utf8');
+  await fs.writeFile(model.path, edit(text, model), 'utf8');
+  await ctx.manager.reload();
+}
+
+/** Re-lists solution items under another solution folder (files stay where they are, as in Visual Studio). */
+async function moveSolutionItems(ctx: CommandContext, items: readonly SolutionItemRef[], targetFolderId: string): Promise<void> {
+  const moving = items.filter(i => i.folderId !== targetFolderId);
+  if (!moving.length) return;
+  const target = requireSolution(ctx).model.folders.find(f => f.id === targetFolderId);
+  const already = moving.find(i => target?.files.some(f => path.resolve(f) === path.resolve(i.filePath)));
+  if (already) throw new UserFacingError(`${path.basename(already.filePath)} is already listed in "${target!.name}".`);
+  await editSolutionText(ctx, (text, model) => moving.reduce((t, i) => {
+    const rel = itemPath(model, i.filePath);
+    return addSolutionItem(model.format, removeSolutionItem(model.format, t, model, i.folderId, rel), model, targetFolderId, rel, true);
+  }, text));
+}
+
 export function registerFolderCommands(ctx: CommandContext): void {
+  registerCommand(ctx, 'codestudio.renameSolutionItem', 'Rename Solution Item', async (node?: unknown) => {
+    const [item] = solutionItemsOf(ctx, node, undefined);
+    if (!item) throw new UserFacingError('Select a solution item to rename.');
+    const oldName = path.basename(item.filePath);
+    const name = (await vscode.window.showInputBox({
+      title: 'Rename solution item', value: oldName, valueSelection: stemSelection(oldName, false), validateInput: validateEntryName,
+    }))?.trim();
+    if (!name || name === oldName) return;
+    const oldUri = vscode.Uri.file(item.filePath);
+    let newUri: vscode.Uri;
+    try {
+      newUri = await renameEntry(oldUri, name);
+    } catch (err) {
+      throw err instanceof FileOperationError ? new UserFacingError(err.message) : err;
+    }
+    try {
+      await editSolutionText(ctx, (text, model) => addSolutionItem(model.format,
+        removeSolutionItem(model.format, text, model, item.folderId, itemPath(model, item.filePath)), model, item.folderId, itemPath(model, newUri.fsPath), true));
+    } catch (err) {
+      await renameEntry(newUri, oldName).catch(() => undefined); // keep disk and solution consistent
+      throw err;
+    }
+  });
+
+  registerCommand(ctx, 'codestudio.removeSolutionItem', 'Remove Solution Item', async (node?: unknown, selected?: unknown) => {
+    const items = solutionItemsOf(ctx, node, selected);
+    if (!items.length) throw new UserFacingError('Select solution items to remove.');
+    const what = items.length === 1 ? `"${path.basename(items[0].filePath)}"` : `${items.length} solution items`;
+    const choice = await vscode.window.showWarningMessage(`Remove ${what} from the solution?`, {
+      modal: true, detail: '"Remove" only unlists the file. "Delete" also moves it to the trash.',
+    }, 'Remove', 'Delete');
+    if (!choice) return;
+    await editSolutionText(ctx, (text, model) => items.reduce((t, i) => removeSolutionItem(model.format, t, model, i.folderId, itemPath(model, i.filePath)), text));
+    if (choice === 'Delete') await deleteEntries(items.map(i => vscode.Uri.file(i.filePath)));
+  });
+
+  registerCommand(ctx, 'codestudio.moveSolutionItem', 'Move Solution Item', async (node?: unknown, selected?: unknown, targetFolderId?: string) => {
+    const items = solutionItemsOf(ctx, node, selected);
+    if (!items.length) throw new UserFacingError('Select solution items to move.');
+    let target = targetFolderId;
+    if (target === undefined) {
+      const { model } = requireSolution(ctx);
+      const pick = await vscode.window.showQuickPick(
+        model.folders.filter(f => !items.every(i => i.folderId === f.id))
+          .map(f => ({ label: `$(folder-library) ${solutionFolderPath(model, f.id)}`, id: f.id }))
+          .sort((a, b) => a.label.localeCompare(b.label)),
+        { placeHolder: 'Move to which solution folder? (the file stays where it is on disk)' },
+      );
+      if (!pick) return;
+      target = pick.id;
+    }
+    await moveSolutionItems(ctx, items, target);
+  });
+
+  registerCommand(ctx, 'codestudio.removeProject', 'Remove Project', async (node?: unknown) => {
+    node ??= ctx.provider.selection[0]; // keybindings pass no node
+    const { model } = requireSolution(ctx);
+    const project = await resolveProject(ctx, node, 'Select a project to remove from the solution');
+    if (!project) return;
+    const projectDir = path.dirname(project.absolutePath);
+    // Never offer to trash a folder that holds the solution itself (or is the solution folder).
+    const canDeleteFiles = !isSameOrInside(model.directory, projectDir);
+    const buttons = canDeleteFiles ? ['Remove', 'Remove and Delete Files'] : ['Remove'];
+    const choice = await vscode.window.showWarningMessage(
+      `Remove ${project.name} from ${model.name}?`,
+      { modal: true, detail: canDeleteFiles
+        ? `"Remove" keeps the files on disk. "Remove and Delete Files" also moves ${vscode.workspace.asRelativePath(projectDir)} to the trash.`
+        : 'The project files stay on disk.' },
+      ...buttons,
+    );
+    if (!choice) return;
+    await removeProjectsFromSolution(ctx, [project]);
+    if (choice === 'Remove and Delete Files') await deleteEntries([vscode.Uri.file(projectDir)]);
+    await ctx.manager.reload();
+  });
+
+  registerCommand(ctx, 'codestudio.deleteSolutionFolder', 'Delete Solution Folder', async (node?: unknown) => {
+    node ??= ctx.provider.selection[0]; // keybindings pass no node
+    const { model } = requireSolution(ctx);
+    const folder = solutionFolderOf(node);
+    if (!folder) throw new UserFacingError('Run "Delete" on a solution folder in the Solution Explorer.');
+    const ids = folderAndDescendants(model, folder.id);
+    const projects = model.projects.filter(p => p.parentFolderId && ids.has(p.parentFolderId));
+    const items = model.folders.filter(f => ids.has(f.id)).reduce((n, f) => n + f.files.length, 0);
+    const detail = [
+      ids.size > 1 ? `${ids.size - 1} sub-folder(s) are removed too.` : '',
+      projects.length ? `${projects.length} project(s) are removed from the solution: ${projects.map(p => p.name).join(', ')}.` : '',
+      items ? `${items} solution item(s) are no longer listed.` : '',
+      'No files are deleted from disk.',
+    ].filter(Boolean).join(' ');
+    const confirm = await vscode.window.showWarningMessage(`Delete solution folder "${folder.name}"?`, { modal: true, detail }, 'Delete');
+    if (confirm !== 'Delete') return;
+    if (projects.length) await removeProjectsFromSolution(ctx, projects);
+    // `dotnet sln remove` may already have dropped emptied folders; remove whatever is left.
+    const text = await fs.readFile(model.path, 'utf8');
+    await fs.writeFile(model.path, removeSolutionFolder(model.format, text, { ...model, projects: model.projects.filter(p => !projects.includes(p)) }, folder.id), 'utf8');
+    await ctx.manager.reload();
+  });
+
+  registerCommand(ctx, 'codestudio.renameSolutionFolder', 'Rename Solution Folder', async (node?: unknown) => {
+    node ??= ctx.provider.selection[0]; // keybindings pass no node
+    const { model } = requireSolution(ctx);
+    const folder = solutionFolderOf(node);
+    if (!folder) throw new UserFacingError('Run "Rename" on a solution folder in the Solution Explorer.');
+    const others = { ...model, folders: model.folders.filter(f => f.id !== folder.id) };
+    const name = await vscode.window.showInputBox({
+      title: `Rename solution folder "${folder.name}"`,
+      value: folder.name,
+      validateInput: v => validateSolutionFolderName(others, v, folder.parentFolderId),
+    });
+    if (name === undefined || name.trim() === folder.name) return;
+    const text = await fs.readFile(model.path, 'utf8');
+    await fs.writeFile(model.path, renameSolutionFolder(model.format, text, model, folder.id, name), 'utf8');
+    await ctx.manager.reload();
+  });
+
   registerCommand(ctx, 'codestudio.addSolutionFolder', 'New Solution Folder', async (node?: unknown) => {
     const { model } = requireSolution(ctx);
     const parent = solutionFolderOf(node);

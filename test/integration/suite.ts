@@ -1,6 +1,6 @@
 // Runs inside the Extension Development Host (has access to the real 'vscode' API).
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
@@ -457,6 +457,27 @@ export async function run(): Promise<void> {
     [root] = await api.provider.getChildren();
     assert.deepEqual(await labels(api, await child(api, await child(api, root, 'Libs'), 'Inner')), ['Sample.Extra']);
 
+    // New Item on a solution folder adds the file to the (only) project inside it, also through a parent folder.
+    stub('showQuickPick', async (items: { label: string }[]) => items.find(i => i.label === 'Interface') ?? items.find(i => i.label === 'Sample.Extra'));
+    stub('showInputBox', async () => 'IGreeter');
+    stub('showTextDocument', async () => undefined);
+    await vscode.commands.executeCommand('codestudio.newItem', await child(api, root, 'Libs'));
+    const greeter = path.join(workspace, 'extra', 'Sample.Extra', 'IGreeter.cs');
+    assert.match(readFileSync(greeter, 'utf8'), /namespace Sample\.Extra;[\s\S]*interface IGreeter/);
+    rmSync(greeter);
+
+    // An empty solution folder gets the file as a solution item (no project needed), like Visual Studio.
+    stub('showInputBox', async () => 'Empty');
+    await vscode.commands.executeCommand('codestudio.addSolutionFolder', root);
+    [root] = await api.provider.getChildren();
+    stub('showInputBox', async () => 'IShared');
+    await vscode.commands.executeCommand('codestudio.newItem', await child(api, root, 'Empty'));
+    const shared = path.join(workspace, 'Empty', 'IShared.cs');
+    assert.match(readFileSync(shared, 'utf8'), /namespace SampleApp\.Empty;[\s\S]*interface IShared/);
+    assert.match(readFileSync(sln, 'utf8'), /ProjectSection\(SolutionItems\) = preProject\s+Empty\\IShared\.cs = Empty\\IShared\.cs/);
+    [root] = await api.provider.getChildren();
+    assert.deepEqual(await labels(api, await child(api, root, 'Empty')), ['IShared.cs']);
+
     stub('showQuickPick', async (items: { label: string }[]) => items.find(i => labelOf(i) === '(Solution root)'));
     await withTimeout(vscode.commands.executeCommand('codestudio.moveProjectToSolutionFolder', await projectNode(api, 'Sample.Extra')), 60000, 'move to root');
     restoreStubs(); watchErrors();
@@ -464,6 +485,187 @@ export async function run(): Promise<void> {
     assert.equal(extra?.parentFolderId, undefined);
   });
 
+
+  await step('Rename and delete solution folders; remove projects from the solution', async () => {
+    let [root] = await api.provider.getChildren();
+    stub('showInputBox', async (o: vscode.InputBoxOptions) => {
+      assert.match(String(await o.validateInput?.('tests')), /already exists/);
+      return 'Shared';
+    });
+    await vscode.commands.executeCommand('codestudio.renameSolutionFolder', await child(api, root, 'Empty'));
+    [root] = await api.provider.getChildren();
+    assert.deepEqual(await labels(api, await child(api, root, 'Shared')), ['IShared.cs']);
+
+    // Deleting a folder with a solution item unlists the item but keeps the file.
+    let detail = '';
+    stub('showWarningMessage', async (_m: string, o: vscode.MessageOptions) => { detail = o.detail ?? ''; return 'Delete'; });
+    await vscode.commands.executeCommand('codestudio.deleteSolutionFolder', await child(api, root, 'Shared'));
+    assert.match(detail, /1 solution item/);
+    assert.ok(!api.manager.solution!.model.folders.some(f => f.name === 'Shared'));
+    assert.ok(existsSync(path.join(workspace, 'Empty', 'IShared.cs')));
+    rmSync(path.join(workspace, 'Empty'), { recursive: true });
+
+    // Deleting a folder tree removes its projects from the solution (files stay).
+    stub('showInputBox', async () => 'Libs');
+    await vscode.commands.executeCommand('codestudio.addSolutionFolder', root);
+    stub('showQuickPick', async (items: { label: string }[]) => items.find(i => labelOf(i) === 'Libs'));
+    await withTimeout(vscode.commands.executeCommand('codestudio.moveProjectToSolutionFolder', await projectNode(api, 'Sample.Extra')), 60000, 'move');
+    [root] = await api.provider.getChildren();
+    await withTimeout(vscode.commands.executeCommand('codestudio.deleteSolutionFolder', await child(api, root, 'Libs')), 60000, 'delete folder');
+    assert.match(detail, /Sample\.Extra/);
+    assert.ok(!api.manager.solution!.model.folders.some(f => f.name === 'Libs' || f.name === 'Inner'));
+    assert.ok(!api.manager.solution!.model.projects.some(p => p.name === 'Sample.Extra'));
+    assert.ok(existsSync(path.join(workspace, 'extra', 'Sample.Extra', 'Sample.Extra.csproj')));
+
+    // Remove from Solution: "Remove" keeps files, "Remove and Delete Files" trashes the project folder.
+    stub('showOpenDialog', async () => [vscode.Uri.file(path.join(workspace, 'extra', 'Sample.Extra', 'Sample.Extra.csproj'))]);
+    stub('showInformationMessage', async () => undefined);
+    await withTimeout(vscode.commands.executeCommand('codestudio.addExistingProject'), 60000, 're-add');
+    stub('showWarningMessage', async (_m: string, _o: unknown, ...buttons: string[]) => { assert.deepEqual(buttons, ['Remove', 'Remove and Delete Files']); return 'Remove and Delete Files'; });
+    await withTimeout(vscode.commands.executeCommand('codestudio.removeProject', await projectNode(api, 'Sample.Extra')), 60000, 'remove');
+    restoreStubs(); watchErrors();
+    assert.ok(!api.manager.solution!.model.projects.some(p => p.name === 'Sample.Extra'));
+    assert.doesNotMatch(readFileSync(sln, 'utf8'), /Sample\.Extra/);
+    assert.ok(!existsSync(path.join(workspace, 'extra', 'Sample.Extra')));
+  });
+
+  await step('Solution items: rename, move (command and drag and drop), remove and delete', async () => {
+    const folderNames = ['Docs', 'Other'];
+    stub('showInputBox', async () => folderNames.shift());
+    let [root] = await api.provider.getChildren();
+    await vscode.commands.executeCommand('codestudio.addSolutionFolder', root);
+    await vscode.commands.executeCommand('codestudio.addSolutionFolder', root);
+    const newFile = async (name: string) => {
+      stub('showQuickPick', async (items: { label: string }[]) => items.find(i => labelOf(i) === 'Empty file'));
+      stub('showInputBox', async () => name);
+      [root] = await api.provider.getChildren();
+      await vscode.commands.executeCommand('codestudio.newItem', await child(api, root, 'Docs'));
+    };
+    stub('showTextDocument', async () => undefined);
+    await newFile('notes.md');
+    const docsDir = path.join(workspace, 'Docs');
+    const folderOf = (file: string) => api.manager.solution!.model.folders.find(f => f.files.some(x => path.basename(x) === file))?.name;
+    const item = async (folder: string, file: string) => { [root] = await api.provider.getChildren(); return child(api, await child(api, root, folder), file); };
+
+    stub('showInputBox', async (o: vscode.InputBoxOptions) => { assert.deepEqual(o.valueSelection, [0, 5]); return 'guide.md'; });
+    await vscode.commands.executeCommand('codestudio.renameSolutionItem', await item('Docs', 'notes.md'));
+    assert.ok(existsSync(path.join(docsDir, 'guide.md')) && !existsSync(path.join(docsDir, 'notes.md')));
+    assert.equal(folderOf('guide.md'), 'Docs');
+    assert.doesNotMatch(readFileSync(sln, 'utf8'), /notes\.md/);
+
+    stub('showQuickPick', async (items: { label: string }[]) => items.find(i => labelOf(i) === 'Other'));
+    await vscode.commands.executeCommand('codestudio.moveSolutionItem', await item('Docs', 'guide.md'));
+    assert.equal(folderOf('guide.md'), 'Other');
+    assert.ok(existsSync(path.join(docsDir, 'guide.md')), 'moving only re-lists the file');
+
+    const dt = new vscode.DataTransfer();
+    api.provider.handleDrag([await item('Other', 'guide.md')], dt);
+    [root] = await api.provider.getChildren();
+    await api.provider.handleDrop(await child(api, root, 'Docs'), dt);
+    assert.equal(folderOf('guide.md'), 'Docs');
+
+    stub('showWarningMessage', async () => 'Remove');
+    await vscode.commands.executeCommand('codestudio.removeSolutionItem', await item('Docs', 'guide.md'));
+    assert.equal(folderOf('guide.md'), undefined);
+    assert.ok(existsSync(path.join(docsDir, 'guide.md')), '"Remove" keeps the file');
+
+    await newFile('todo.md');
+    stub('showWarningMessage', async () => 'Delete');
+    await vscode.commands.executeCommand('codestudio.removeSolutionItem', await item('Docs', 'todo.md'));
+    assert.equal(folderOf('todo.md'), undefined);
+    assert.ok(!existsSync(path.join(docsDir, 'todo.md')), '"Delete" trashes the file');
+
+    for (const f of ['Docs', 'Other']) {
+      [root] = await api.provider.getChildren();
+      await vscode.commands.executeCommand('codestudio.deleteSolutionFolder', await child(api, root, f));
+    }
+    restoreStubs(); watchErrors();
+    rmSync(docsDir, { recursive: true, force: true });
+  });
+
+  await step('File operations: new folder, copy/paste, rename, cut/paste, drag and drop, delete', async () => {
+    const appDir = path.join(workspace, 'src', 'Sample.App');
+    const app = () => projectNode(api, 'Sample.App');
+    stub('showTextDocument', async () => undefined);
+
+    stub('showInputBox', async () => 'Models');
+    await vscode.commands.executeCommand('codestudio.newFolder', await app());
+    assert.ok(existsSync(path.join(appDir, 'Models')));
+
+    // Copy + paste into a folder keeps the name; pasting next to the original makes "Program - Copy.cs".
+    await vscode.commands.executeCommand('codestudio.copyEntry', await child(api, await app(), 'Program.cs'));
+    await vscode.commands.executeCommand('codestudio.pasteEntry', await child(api, await app(), 'Models'));
+    await vscode.commands.executeCommand('codestudio.pasteEntry', await app());
+    assert.ok(existsSync(path.join(appDir, 'Models', 'Program.cs')));
+    assert.ok(existsSync(path.join(appDir, 'Program - Copy.cs')));
+    assert.ok(existsSync(path.join(appDir, 'Program.cs')), 'copy leaves the original');
+
+    stub('showInputBox', async (o: vscode.InputBoxOptions) => {
+      assert.deepEqual(o.valueSelection, [0, 'Program - Copy'.length]);
+      assert.ok(o.validateInput?.('bad/name'));
+      return 'Renamed.cs';
+    });
+    await vscode.commands.executeCommand('codestudio.renameEntry', await child(api, await app(), 'Program - Copy.cs'));
+    assert.ok(existsSync(path.join(appDir, 'Renamed.cs')) && !existsSync(path.join(appDir, 'Program - Copy.cs')));
+
+    // Cut + paste moves; a second paste has nothing left on the clipboard.
+    await vscode.commands.executeCommand('codestudio.cutEntry', await child(api, await app(), 'Renamed.cs'));
+    await vscode.commands.executeCommand('codestudio.pasteEntry', await child(api, await app(), 'Models'));
+    assert.ok(existsSync(path.join(appDir, 'Models', 'Renamed.cs')) && !existsSync(path.join(appDir, 'Renamed.cs')), `${takeErrors().join('; ')} root=${readdirSync(appDir)} models=${readdirSync(path.join(appDir, 'Models'))}`);
+    await vscode.commands.executeCommand('codestudio.pasteEntry', await app());
+    assert.match(takeErrors().join('\n'), /Nothing to paste/);
+
+    // A folder cannot be pasted into itself.
+    const models = await child(api, await app(), 'Models');
+    await vscode.commands.executeCommand('codestudio.copyEntry', models);
+    await vscode.commands.executeCommand('codestudio.pasteEntry', models);
+    assert.match(takeErrors().join('\n'), /into itself/);
+
+    // Drag and drop moves a file between folders of a project.
+    const dt = new vscode.DataTransfer();
+    const dragged = await child(api, await child(api, await app(), 'Models'), 'Renamed.cs');
+    api.provider.handleDrag([dragged], dt);
+    await api.provider.handleDrop(await app(), dt);
+    assert.ok(existsSync(path.join(appDir, 'Renamed.cs')) && !existsSync(path.join(appDir, 'Models', 'Renamed.cs')));
+
+    // Delete asks first; multi-selection deletes everything selected.
+    stub('showWarningMessage', async () => undefined);
+    await vscode.commands.executeCommand('codestudio.deleteEntry', models);
+    assert.ok(existsSync(path.join(appDir, 'Models')), 'cancelled delete keeps the folder');
+    stub('showWarningMessage', async (m: string) => { assert.match(m, /Delete 2 items/); return 'Delete'; });
+    const renamed = await child(api, await app(), 'Renamed.cs');
+    await vscode.commands.executeCommand('codestudio.deleteEntry', renamed, [renamed, await child(api, await app(), 'Models')]);
+    restoreStubs(); watchErrors();
+    assert.ok(!existsSync(path.join(appDir, 'Models')) && !existsSync(path.join(appDir, 'Renamed.cs')));
+    assert.ok(existsSync(path.join(appDir, 'Program.cs')));
+  });
+
+  await step('Files created or deleted outside the Solution Explorer refresh the tree (build output does not)', async () => {
+    const appDir = path.join(workspace, 'src', 'Sample.App');
+    let refreshes = 0;
+    const sub = api.provider.onDidChangeTreeData(() => refreshes++);
+    const waitFor = async (cond: () => boolean, ms: number) => { const end = Date.now() + ms; while (!cond() && Date.now() < end) await new Promise(r => setTimeout(r, 100)); };
+    try {
+      await new Promise(r => setTimeout(r, 1500)); // let refreshes from earlier steps settle
+      refreshes = 0;
+      mkdirSync(path.join(appDir, 'obj', 'probe'), { recursive: true });
+      writeFileSync(path.join(appDir, 'obj', 'probe', 'x.cs'), '');
+      await new Promise(r => setTimeout(r, 1500));
+      assert.equal(refreshes, 0, 'obj/ changes must not refresh the tree');
+      writeFileSync(path.join(appDir, 'External.cs'), 'namespace Sample.App;\npublic class External { }\n');
+      await waitFor(() => refreshes > 0, 5000);
+      assert.ok(refreshes > 0, 'creating a file refreshes the tree');
+      assert.ok((await labels(api, await projectNode(api, 'Sample.App'))).includes('External.cs'));
+      refreshes = 0;
+      rmSync(path.join(appDir, 'External.cs'));
+      await waitFor(() => refreshes > 0, 5000);
+      assert.ok(refreshes > 0, 'deleting a file refreshes the tree');
+    } finally {
+      sub.dispose();
+      rmSync(path.join(appDir, 'External.cs'), { force: true });
+      rmSync(path.join(appDir, 'obj', 'probe'), { recursive: true, force: true });
+    }
+  });
 
   await step('New Project dialog creates a webapi project from a template inside a virtual folder', async () => {
     const [root] = await api.provider.getChildren();

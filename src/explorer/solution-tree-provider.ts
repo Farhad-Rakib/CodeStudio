@@ -9,6 +9,8 @@ import { dacpacPath, sqlSdkCompatibilityWarning } from '../sql/sql-project';
 import { createTreeItem, ExplorerNode } from './solution-tree-item';
 import { buildStructure, filterStructure, StructureNode } from './tree-builder';
 
+import { FileOperationError, transferEntries } from './file-operations';
+
 const DRAG_MIME = 'application/vnd.code.tree.codestudio.solutionexplorer';
 
 export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNode>, vscode.TreeDragAndDropController<ExplorerNode> {
@@ -18,6 +20,8 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
   readonly dropMimeTypes = [DRAG_MIME];
 
   private filterText = '';
+  /** Current tree selection, for keybinding-invoked commands (which receive no node). */
+  selection: readonly ExplorerNode[] = [];
 
   /**
    * @param dotnetSdkVersion Resolves the active .NET SDK version. Only called when a SQL project is
@@ -29,6 +33,7 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
     private readonly dotnetSdkVersion: () => Promise<string | undefined> = async () => undefined,
   ) {
     manager.onDidChange(() => this.refresh());
+    manager.onDidChangeFiles(() => this.refresh());
   }
 
   get filter(): string {
@@ -145,7 +150,9 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
       children.unshift({ type: 'buildOutput', project, uri, configuration, exists });
     }
     if (vscode.workspace.getConfiguration('codestudio').get<boolean>('explorer.showPhysicalFiles', true)) {
-      children.push(...(await this.directoryChildren(project, vscode.Uri.file(path.dirname(project.absolutePath)))));
+      const entries = await this.directoryChildren(project, vscode.Uri.file(path.dirname(project.absolutePath)));
+      // Say so explicitly; otherwise an empty project looks like files failed to load.
+      children.push(...(entries.length ? entries : [{ type: 'message' as const, id: `empty:${project.key}`, text: 'No files in the project folder', icon: 'info' }]));
     }
     return children;
   }
@@ -179,7 +186,7 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
 
   handleDrag(source: readonly ExplorerNode[], data: vscode.DataTransfer): void {
     const draggable = source.filter(
-      n => n.type === 'structure' && (n.node.kind === 'project' || n.node.kind === 'virtualFolder'),
+      n => (n.type === 'structure' && (n.node.kind === 'project' || n.node.kind === 'virtualFolder' || n.node.kind === 'solutionItem')) || n.type === 'file' || n.type === 'physicalFolder',
     );
     if (draggable.length) data.set(DRAG_MIME, new vscode.DataTransferItem(draggable));
   }
@@ -188,6 +195,40 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
     const item = data.get(DRAG_MIME);
     if (!item || !this.manager.solution) return;
     const nodes = item.value as ExplorerNode[];
+
+    // Solution items are re-listed under another solution folder (the file stays on disk).
+    const items = nodes.filter(n => n.type === 'structure' && n.node.kind === 'solutionItem');
+    if (items.length) {
+      const folderId = target?.type === 'structure' && target.node.kind === 'solutionFolder' ? target.node.folder.id
+        : target?.type === 'structure' && target.node.kind === 'solutionItem' ? target.node.folderId
+        : undefined;
+      if (folderId === undefined) {
+        void vscode.window.showInformationMessage('CodeXStudio: Drop solution items onto a solution folder.');
+        return;
+      }
+      await vscode.commands.executeCommand('codestudio.moveSolutionItem', items[0], items, folderId);
+      return;
+    }
+
+    // Files and folders inside projects move on disk, onto a project or one of its folders.
+    const files = nodes.filter(n => n.type === 'file' || n.type === 'physicalFolder') as { uri: vscode.Uri }[];
+    if (files.length) {
+      const dir = target?.type === 'physicalFolder' ? target.uri
+        : target?.type === 'file' ? vscode.Uri.file(path.dirname(target.uri.fsPath))
+        : target?.type === 'structure' && target.node.kind === 'project' ? vscode.Uri.file(path.dirname(target.node.project.absolutePath))
+        : undefined;
+      if (!dir) {
+        void vscode.window.showInformationMessage('CodeXStudio: Drop files onto a project or one of its folders.');
+        return;
+      }
+      try {
+        await transferEntries(files.map(f => f.uri), dir, 'move');
+      } catch (err) {
+        void vscode.window.showErrorMessage(`CodeXStudio: ${err instanceof FileOperationError ? err.message : `Move failed: ${(err as Error).message}`}`);
+      }
+      this.refresh();
+      return;
+    }
 
     let folderId: string | undefined;
     if (!target || target.type === 'solution') folderId = undefined;

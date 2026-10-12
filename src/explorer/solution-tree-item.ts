@@ -135,7 +135,8 @@ export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?:
           item.label = s.label;
           item.iconPath = vscode.ThemeIcon.File;
           item.command = { command: 'vscode.open', title: 'Open', arguments: [vscode.Uri.file(s.filePath)] };
-          item.contextValue = 'file';
+          // Not 'file': solution items have their own rename/remove/move commands that also edit the solution file.
+          item.contextValue = 'solutionItem';
           break;
       }
       break;

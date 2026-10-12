@@ -144,6 +144,67 @@
         "category": "CodeXStudio"
       },
       {
+        "command": "codestudio.newFolder",
+        "title": "New Folder",
+        "category": "CodeXStudio",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "codestudio.renameEntry",
+        "title": "Rename",
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.deleteEntry",
+        "title": "Delete",
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.cutEntry",
+        "title": "Cut",
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.copyEntry",
+        "title": "Copy",
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.pasteEntry",
+        "title": "Paste",
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.removeProject",
+        "title": "Remove from Solution",
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.deleteSolutionFolder",
+        "title": "Delete",
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.renameSolutionFolder",
+        "title": "Rename",
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.renameSolutionItem",
+        "title": "Rename",
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.removeSolutionItem",
+        "title": "Remove / Delete...",
+        "category": "CodeXStudio"
+      },
+      {
+        "command": "codestudio.moveSolutionItem",
+        "title": "Move to Solution Folder...",
+        "category": "CodeXStudio"
+      },
+      {
         "command": "codestudio.addVirtualFolder",
         "title": "Add Virtual Folder",
         "category": "CodeXStudio",
@@ -442,7 +503,7 @@
         },
         {
           "command": "codestudio.addExistingProject",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(solution|solutionFolder)$/",
           "group": "3_add@1"
         },
         {
@@ -512,22 +573,22 @@
         },
         {
           "command": "codestudio.revealInOS",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project|file|physicalFolder|dacpac$)/",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project|file$|solutionItem$|physicalFolder|dacpac$)/",
           "group": "9_reveal@1"
         },
         {
           "command": "codestudio.openFile",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == file",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(file|solutionItem)$/",
           "group": "1_file@1"
         },
         {
           "command": "codestudio.newProject",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(solution|virtualFolder)$/",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(solution|solutionFolder|virtualFolder)$/",
           "group": "3_add@0"
         },
         {
           "command": "codestudio.newItem",
-          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project(?!\\.sql)|physicalFolder)/",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project(?!\\.sql)|physicalFolder|solutionFolder$)/",
           "group": "3_add@0"
         },
         {
@@ -589,6 +650,66 @@
           "command": "codestudio.deployDacpac",
           "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == dacpac",
           "group": "1_dacpac@1"
+        },
+        {
+          "command": "codestudio.newFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(project|physicalFolder$)/",
+          "group": "3_add@3"
+        },
+        {
+          "command": "codestudio.cutEntry",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(file|physicalFolder)$/",
+          "group": "5_cutcopypaste@1"
+        },
+        {
+          "command": "codestudio.copyEntry",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(file|physicalFolder)$/",
+          "group": "5_cutcopypaste@2"
+        },
+        {
+          "command": "codestudio.pasteEntry",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.canPaste && viewItem =~ /^(project|file$|physicalFolder$)/",
+          "group": "5_cutcopypaste@3"
+        },
+        {
+          "command": "codestudio.renameEntry",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(file|physicalFolder)$/",
+          "group": "6_modification@1"
+        },
+        {
+          "command": "codestudio.deleteEntry",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(file|physicalFolder)$/",
+          "group": "6_modification@2"
+        },
+        {
+          "command": "codestudio.renameSolutionFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solutionFolder",
+          "group": "6_modification@1"
+        },
+        {
+          "command": "codestudio.deleteSolutionFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solutionFolder",
+          "group": "6_modification@2"
+        },
+        {
+          "command": "codestudio.removeProject",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
+          "group": "6_modification@2"
+        },
+        {
+          "command": "codestudio.moveSolutionItem",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solutionItem",
+          "group": "4_layout@1"
+        },
+        {
+          "command": "codestudio.renameSolutionItem",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solutionItem",
+          "group": "6_modification@1"
+        },
+        {
+          "command": "codestudio.removeSolutionItem",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solutionItem",
+          "group": "6_modification@2"
         }
       ],
       "commandPalette": [
@@ -635,6 +756,50 @@
         {
           "command": "codestudio.clearStartupProject",
           "when": "codestudio.hasStartupProject"
+        },
+        {
+          "command": "codestudio.renameEntry",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.deleteEntry",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.cutEntry",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.copyEntry",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.pasteEntry",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.newFolder",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.deleteSolutionFolder",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.renameSolutionFolder",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.renameSolutionItem",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.removeSolutionItem",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.moveSolutionItem",
+          "when": "false"
         }
       ]
     },
@@ -968,6 +1133,66 @@
         "key": "ctrl+f5",
         "mac": "ctrl+f5",
         "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inDebugMode"
+      },
+      {
+        "command": "codestudio.renameEntry",
+        "key": "f2",
+        "mac": "enter",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem =~ /^(file|physicalFolder)$/"
+      },
+      {
+        "command": "codestudio.deleteEntry",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem =~ /^(file|physicalFolder)$/"
+      },
+      {
+        "command": "codestudio.copyEntry",
+        "key": "ctrl+c",
+        "mac": "cmd+c",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem =~ /^(file|physicalFolder)$/"
+      },
+      {
+        "command": "codestudio.cutEntry",
+        "key": "ctrl+x",
+        "mac": "cmd+x",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem =~ /^(file|physicalFolder)$/"
+      },
+      {
+        "command": "codestudio.pasteEntry",
+        "key": "ctrl+v",
+        "mac": "cmd+v",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && codestudio.canPaste && viewItem =~ /^(project|file$|physicalFolder$)/"
+      },
+      {
+        "command": "codestudio.renameSolutionFolder",
+        "key": "f2",
+        "mac": "enter",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem == solutionFolder"
+      },
+      {
+        "command": "codestudio.deleteSolutionFolder",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem == solutionFolder"
+      },
+      {
+        "command": "codestudio.removeProject",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem =~ /^project/"
+      },
+      {
+        "command": "codestudio.renameSolutionItem",
+        "key": "f2",
+        "mac": "enter",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem == solutionItem"
+      },
+      {
+        "command": "codestudio.removeSolutionItem",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem == solutionItem"
       }
     ],
     "colors": [

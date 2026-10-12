@@ -8,7 +8,7 @@ export type StructureNode =
   | { readonly kind: 'solutionFolder'; readonly id: string; readonly label: string; readonly folder: SolutionFolder; readonly children: StructureNode[] }
   | { readonly kind: 'virtualFolder'; readonly id: string; readonly label: string; readonly folder: VirtualFolder; readonly children: StructureNode[] }
   | { readonly kind: 'project'; readonly id: string; readonly label: string; readonly project: SolutionProject; readonly assignedFolderId?: string }
-  | { readonly kind: 'solutionItem'; readonly id: string; readonly label: string; readonly filePath: string };
+  | { readonly kind: 'solutionItem'; readonly id: string; readonly label: string; readonly filePath: string; readonly folderId: string };
 
 export const nodeId = {
   solution: (p: string) => `solution:${p}`,
@@ -44,7 +44,7 @@ export function buildStructure(model: SolutionModel, layout: SolutionLayout): St
   for (const f of model.folders) {
     const children = nativeChildren.get(f.id)!;
     for (const file of f.files) {
-      children.push({ kind: 'solutionItem', id: nodeId.solutionItem(f.id, file), label: path.basename(file), filePath: file });
+      children.push({ kind: 'solutionItem', id: nodeId.solutionItem(f.id, file), label: path.basename(file), filePath: file, folderId: f.id });
     }
     containerFor(nativeChildren, f.parentFolderId).push({
       kind: 'solutionFolder', id: nodeId.solutionFolder(f.id), label: f.name, folder: f, children,
