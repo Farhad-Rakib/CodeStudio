@@ -6,7 +6,7 @@ import { describe, it } from 'node:test';
 const ROOT = path.resolve(__dirname, '../..');
 const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const contributed: { id: string; defaults: Record<string, string> }[] = pkg.contributes.colors;
-const themes = ['codestudio-dark-color-theme.json', 'codestudio-light-color-theme.json'].map(f => JSON.parse(readFileSync(path.join(ROOT, 'themes', f), 'utf8')));
+const themes = readdirSync(path.join(ROOT, 'themes')).filter(f => f.endsWith('-color-theme.json')).map(f => JSON.parse(readFileSync(path.join(ROOT, 'themes', f), 'utf8')));
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap(name => {
@@ -30,7 +30,7 @@ describe('theme colors', () => {
     }
   });
 
-  it('both CodeXStudio themes define every contributed color', () => {
+  it('every CodeXStudio theme defines every contributed color', () => {
     for (const t of themes) for (const c of contributed) assert.match(t.colors[c.id] ?? '', /^#[0-9A-Fa-f]{6,8}$/, `${t.name}: ${c.id}`);
   });
 });

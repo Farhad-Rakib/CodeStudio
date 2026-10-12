@@ -434,6 +434,36 @@ export async function run(): Promise<void> {
     assert.match(readFileSync(sln, 'utf8'), /Sample\.Extra\.csproj/);
   });
 
+  await step('New Solution Folder (root and nested) and Move to Solution Folder edit the .sln', async () => {
+    const names = ['Libs', 'Inner'];
+    stub('showInputBox', async () => names.shift());
+    let [root] = await api.provider.getChildren();
+    await vscode.commands.executeCommand('codestudio.addSolutionFolder', root);
+    [root] = await api.provider.getChildren();
+    await vscode.commands.executeCommand('codestudio.addSolutionFolder', await child(api, root, 'Libs'));
+    assert.deepEqual(names, []);
+    const inner = api.manager.solution!.model.folders.find(f => f.name === 'Inner');
+    assert.equal(api.manager.solution!.model.folders.find(f => f.id === inner?.parentFolderId)?.name, 'Libs');
+
+    // A duplicate name is rejected by the input validation.
+    let validation: string | undefined;
+    stub('showInputBox', async (o: vscode.InputBoxOptions) => { validation = await o.validateInput?.('libs') as string; return undefined; });
+    [root] = await api.provider.getChildren();
+    await vscode.commands.executeCommand('codestudio.addSolutionFolder', root);
+    assert.match(validation ?? '', /already exists/);
+
+    stub('showQuickPick', async (items: { label: string }[]) => items.find(i => labelOf(i) === 'Libs/Inner'));
+    await withTimeout(vscode.commands.executeCommand('codestudio.moveProjectToSolutionFolder', await projectNode(api, 'Sample.Extra')), 60000, 'move to folder');
+    [root] = await api.provider.getChildren();
+    assert.deepEqual(await labels(api, await child(api, await child(api, root, 'Libs'), 'Inner')), ['Sample.Extra']);
+
+    stub('showQuickPick', async (items: { label: string }[]) => items.find(i => labelOf(i) === '(Solution root)'));
+    await withTimeout(vscode.commands.executeCommand('codestudio.moveProjectToSolutionFolder', await projectNode(api, 'Sample.Extra')), 60000, 'move to root');
+    restoreStubs(); watchErrors();
+    const extra = api.manager.solution!.model.projects.find(p => p.name === 'Sample.Extra');
+    assert.equal(extra?.parentFolderId, undefined);
+  });
+
 
   await step('New Project dialog creates a webapi project from a template inside a virtual folder', async () => {
     const [root] = await api.provider.getChildren();
@@ -690,10 +720,16 @@ export async function run(): Promise<void> {
     assert.ok(!preview.getText().includes('minimap'), 'unselected setting not in preview');
   });
 
-  await step('CodeXStudio Dark and Light themes are contributed and selectable', async () => {
+  await step('CodeXStudio Dark, Light and Monokai themes are contributed and selectable', async () => {
     const ext = vscode.extensions.getExtension('fhasancse.codeXstudio')!;
     const themes = ext.packageJSON.contributes.themes.map((t: { label: string }) => t.label);
-    assert.deepEqual(themes, ['CodeXStudio Dark', 'CodeXStudio Light']);
+    assert.deepEqual(themes, ['CodeXStudio Dark', 'CodeXStudio Light', 'CodeXStudio Monokai', 'CodeXStudio Monokai Dimmed']);
+    for (const name of ['CodeXStudio Monokai', 'CodeXStudio Monokai Dimmed']) {
+      await vscode.workspace.getConfiguration('workbench').update('colorTheme', name, vscode.ConfigurationTarget.Workspace);
+      await new Promise(r => setTimeout(r, 1500));
+      assert.equal(vscode.workspace.getConfiguration('workbench').get('colorTheme'), name);
+      assert.equal(vscode.window.activeColorTheme.kind, vscode.ColorThemeKind.Dark);
+    }
     await vscode.workspace.getConfiguration('workbench').update('colorTheme', 'CodeXStudio Light', vscode.ConfigurationTarget.Workspace);
     await new Promise(r => setTimeout(r, 1500));
     assert.equal(vscode.window.activeColorTheme.kind, vscode.ColorThemeKind.Light);

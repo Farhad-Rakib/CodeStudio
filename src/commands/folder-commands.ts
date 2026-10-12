@@ -1,4 +1,9 @@
+import { randomUUID } from 'crypto';
+import { promises as fs } from 'fs';
 import * as vscode from 'vscode';
+import { addProjectToSolutionFolderArgs, removeProjectFromSolutionArgs } from '../dotnet/dotnet-args';
+import { SolutionFolder } from '../solution/solution-model';
+import { addSolutionFolder, solutionFolderPath, validateSolutionFolderName } from '../solution/solution-folder-writer';
 import { ExplorerNode } from '../explorer/solution-tree-item';
 import {
   assignProject,
@@ -27,7 +32,54 @@ async function pickVirtualFolder(ctx: CommandContext, placeHolder: string, inclu
   return vscode.window.showQuickPick(items, { placeHolder });
 }
 
+function solutionFolderOf(node: unknown): SolutionFolder | undefined {
+  const n = node as ExplorerNode | undefined;
+  return n?.type === 'structure' && n.node.kind === 'solutionFolder' ? n.node.folder : undefined;
+}
+
 export function registerFolderCommands(ctx: CommandContext): void {
+  registerCommand(ctx, 'codestudio.addSolutionFolder', 'New Solution Folder', async (node?: unknown) => {
+    const { model } = requireSolution(ctx);
+    const parent = solutionFolderOf(node);
+    const name = await vscode.window.showInputBox({
+      title: parent ? `New solution folder in "${parent.name}"` : 'New solution folder',
+      prompt: `Adds a solution folder to ${model.name}.${model.format}; nothing is created on disk.`,
+      value: 'New Folder',
+      validateInput: v => validateSolutionFolderName(model, v, parent?.id),
+    });
+    if (name === undefined) return;
+    // The dotnet CLI cannot create an empty solution folder, so this is a minimal text insertion.
+    const text = await fs.readFile(model.path, 'utf8');
+    await fs.writeFile(model.path, addSolutionFolder(model.format, text, model, name, parent?.id, randomUUID()), 'utf8');
+    await ctx.manager.reload();
+  });
+
+  registerCommand(ctx, 'codestudio.moveProjectToSolutionFolder', 'Move Project to Solution Folder', async (node?: unknown) => {
+    const { model } = requireSolution(ctx);
+    const project = await resolveProject(ctx, node, 'Select a project to move');
+    if (!project) return;
+    const items: (vscode.QuickPickItem & { folderPath: string | undefined })[] = model.folders
+      .filter(f => f.id !== project.parentFolderId)
+      .map(f => ({ label: `$(folder-library) ${solutionFolderPath(model, f.id)}`, folderPath: solutionFolderPath(model, f.id) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    if (project.parentFolderId !== undefined) items.unshift({ label: '$(layers) (Solution root)', folderPath: undefined });
+    if (items.length === 0) throw new UserFacingError('There are no other solution folders. Use "New Solution Folder" first.');
+    const pick = await vscode.window.showQuickPick(items, { placeHolder: `Move ${project.name} to...` });
+    if (!pick) return;
+    // `dotnet sln add` will not move a project that is already listed, so remove it first.
+    // If the add fails, restore the original solution text so the project is never lost.
+    const original = await fs.readFile(model.path);
+    await ctx.runner.exec(removeProjectFromSolutionArgs(model.path, project.absolutePath), model.directory);
+    try {
+      await ctx.runner.exec(addProjectToSolutionFolderArgs(model.path, project.absolutePath, pick.folderPath), model.directory);
+    } catch (err) {
+      await fs.writeFile(model.path, original);
+      throw err;
+    } finally {
+      await ctx.manager.reload();
+    }
+  });
+
   registerCommand(ctx, 'codestudio.addVirtualFolder', 'Add Virtual Folder', async (node?: unknown) => {
     const { layout } = requireSolution(ctx);
     const parent = virtualFolderOf(node);

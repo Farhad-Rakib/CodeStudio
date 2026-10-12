@@ -133,6 +133,17 @@
         "category": "CodeXStudio"
       },
       {
+        "command": "codestudio.addSolutionFolder",
+        "title": "New Solution Folder",
+        "category": "CodeXStudio",
+        "icon": "$(file-directory-create)"
+      },
+      {
+        "command": "codestudio.moveProjectToSolutionFolder",
+        "title": "Move to Solution Folder...",
+        "category": "CodeXStudio"
+      },
+      {
         "command": "codestudio.addVirtualFolder",
         "title": "Add Virtual Folder",
         "category": "CodeXStudio",
@@ -435,6 +446,11 @@
           "group": "3_add@1"
         },
         {
+          "command": "codestudio.addSolutionFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(solution|solutionFolder)$/",
+          "group": "3_add@2"
+        },
+        {
           "command": "codestudio.addVirtualFolder",
           "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^(solution|virtualFolder)$/",
           "group": "3_add@2"
@@ -478,6 +494,11 @@
           "command": "codestudio.manageNuGetPackages",
           "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project(?!\\.sql)/",
           "group": "3_add@2"
+        },
+        {
+          "command": "codestudio.moveProjectToSolutionFolder",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem =~ /^project/",
+          "group": "4_layout@0"
         },
         {
           "command": "codestudio.moveProjectToFolder",
@@ -627,6 +648,16 @@
         "label": "CodeXStudio Light",
         "uiTheme": "vs",
         "path": "./themes/codestudio-light-color-theme.json"
+      },
+      {
+        "label": "CodeXStudio Monokai",
+        "uiTheme": "vs-dark",
+        "path": "./themes/codestudio-monokai-color-theme.json"
+      },
+      {
+        "label": "CodeXStudio Monokai Dimmed",
+        "uiTheme": "vs-dark",
+        "path": "./themes/codestudio-monokai-dimmed-color-theme.json"
       }
     ],
     "configuration": {

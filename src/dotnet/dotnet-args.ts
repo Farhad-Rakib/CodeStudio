@@ -101,6 +101,24 @@ export function addProjectToSolutionArgs(solution: string, project: string): str
   return ['sln', solution, 'add', project];
 }
 
+export function removeProjectFromSolutionArgs(solution: string, project: string): string[] {
+  validateSolutionPath(solution);
+  validateProjectPath(project);
+  return ['sln', solution, 'remove', project];
+}
+
+const SOLUTION_FOLDER_PATH_RE = /^[^\\"<>|:*?\x00-\x1f]+$/;
+
+/** dotnet sln add <project> --solution-folder <a/b>, or --in-root when no folder is given. */
+export function addProjectToSolutionFolderArgs(solution: string, project: string, folderPath: string | undefined): string[] {
+  const args = addProjectToSolutionArgs(solution, project);
+  if (folderPath === undefined) return [...args, '--in-root'];
+  if (!SOLUTION_FOLDER_PATH_RE.test(folderPath) || folderPath.split('/').some(s => s.trim() === '' || s.startsWith('-'))) {
+    throw new DotnetArgumentError(`"${folderPath}" is not a valid solution folder path.`);
+  }
+  return [...args, '--solution-folder', folderPath];
+}
+
 const TEMPLATE_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
 const PROJECT_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/;
 

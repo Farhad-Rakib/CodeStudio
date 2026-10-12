@@ -34,16 +34,48 @@ LIGHT = dict(
           "#666666","#CD3131","#14CE14","#B5BA00","#0451A5","#BC05BC","#0598BC","#A5A5A5"],
 )
 
+# Monokai variants, after Wimer Hazenberg's classic palette and VS Code's "Monokai Dimmed".
+MONOKAI = dict(
+    name="CodeXStudio Monokai", type="dark", key="monokai",
+    bg="#272822", bg_alt="#1E1F1C", bg_deep="#1A1B17", bg_hover="#3E3D32", border="#414339", border_soft="#34352D",
+    fg="#F8F8F2", fg_muted="#A59F85", fg_faint="#75715E", accent="#F92672", accent_fg="#FFFFFF", accent_soft="#F9267240",
+    sel="#49483E", sel_inactive="#3E3D32", line="#3E3D3255", find="#FFE79280", find_other="#FFE79240", link="#66D9EF",
+    error="#F92672", warning="#E6DB74", info="#66D9EF", success="#A6E22E",
+    status_bg="#414339", status_debug="#FD971F", status_noFolder="#34352D",
+    comment="#75715E", keyword="#F92672", control="#F92672", string="#E6DB74", string_esc="#AE81FF", number="#AE81FF",
+    typ="#66D9EF", interface="#66D9EF", struct="#66D9EF", enum="#66D9EF", typeparam="#FD971F", method="#A6E22E",
+    prop="#F8F8F2", field="#F8F8F2", local="#F8F8F2", param="#FD971F", constant="#AE81FF", namespace="#F8F8F2",
+    preproc="#75715E", xmlTag="#F92672", xmlAttr="#A6E22E", operator="#F92672", regex="#E6DB74", invalid="#F44747",
+    ansi=["#333333","#C4265E","#86B42B","#B3B42B","#6A7EC8","#8C6BC8","#56ADBC","#E3E3DD",
+          "#666666","#F92672","#A6E22E","#E2E22E","#819AFF","#AE81FF","#66D9EF","#F8F8F2"],
+)
+MONOKAI_DIMMED = dict(
+    name="CodeXStudio Monokai Dimmed", type="dark", key="monokaiDimmed",
+    bg="#1E1E1E", bg_alt="#272727", bg_deep="#191919", bg_hover="#303030", border="#3A3A3A", border_soft="#2F2F2F",
+    fg="#C5C8C6", fg_muted="#9A9B99", fg_faint="#676867", accent="#565656", accent_fg="#FFFFFF", accent_soft="#70707060",
+    sel="#676B7180", sel_inactive="#505050", line="#30303080", find="#9A9B9960", find_other="#9A9B9930", link="#6089B4",
+    error="#C4625B", warning="#D0B344", info="#6089B4", success="#9AA83A",
+    status_bg="#505050", status_debug="#CE6700", status_noFolder="#353535",
+    comment="#9A9B99", keyword="#9872A2", control="#9872A2", string="#9AA83A", string_esc="#D0B344", number="#6089B4",
+    typ="#9B0000", interface="#B05A65", struct="#B05A65", enum="#B05A65", typeparam="#D0B344", method="#CE6700",
+    prop="#C5C8C6", field="#C5C8C6", local="#C5C8C6", param="#6089B4", constant="#408080", namespace="#C5C8C6",
+    preproc="#676867", xmlTag="#9872A2", xmlAttr="#CE6700", operator="#676867", regex="#D0B344", invalid="#C4625B",
+    ansi=["#1E1E1E","#C4625B","#9AA83A","#D0B344","#6089B4","#9872A2","#408080","#C5C8C6",
+          "#676867","#E07A73","#B4C24F","#E6C85A","#7AA3D0","#B48CBE","#5AA0A0","#FFFFFF"],
+)
+
 ANSI_NAMES = ["Black","Red","Green","Yellow","Blue","Magenta","Cyan","White"]
 
 # Rainbow brackets: distinct, readable hues per nesting level (VS Code cycles through 1-6).
 BRACKETS = {
     "dark": ["#FFD700", "#DA70D6", "#4FA3FF", "#4EC9B0", "#F28B54", "#B8D7A3"],
+    "monokai": ["#E6DB74", "#AE81FF", "#66D9EF", "#A6E22E", "#FD971F", "#F92672"],
+    "monokaiDimmed": ["#D0B344", "#9872A2", "#6089B4", "#9AA83A", "#CE6700", "#B05A65"],
     "light": ["#0431FA", "#319331", "#7B3814", "#B5179E", "#0E7C86", "#A35200"],
 }
 
 def bracket_colors(p):
-    hues = BRACKETS[p["type"]]
+    hues = BRACKETS[p.get("key", p["type"])]
     c = {f"editorBracketHighlight.foreground{i + 1}": h for i, h in enumerate(hues)}
     c["editorBracketHighlight.unexpectedBracket.foreground"] = p["error"]
     for i, h in enumerate(hues):
@@ -56,6 +88,12 @@ EXPLORER = {
     "dark": {"solutionIcon": "#B180D7", "solutionFolderIcon": "#DCB67A", "virtualFolderIcon": "#E8C46A", "csharpProjectIcon": "#9B7BEA",
              "fsharpProjectIcon": "#56B6C2", "vbProjectIcon": "#75BEFF", "sqlProjectIcon": "#E2A45C", "webProjectIcon": "#4FA3FF", "testProjectIcon": "#6CC24A",
              "packageIcon": "#4FA3FF", "dependencyIcon": "#A0A0A0", "errorIcon": "#F14C4C"},
+    "monokai": {"solutionIcon": "#AE81FF", "solutionFolderIcon": "#E6DB74", "virtualFolderIcon": "#FD971F", "csharpProjectIcon": "#AE81FF",
+                "fsharpProjectIcon": "#66D9EF", "vbProjectIcon": "#66D9EF", "sqlProjectIcon": "#FD971F", "webProjectIcon": "#66D9EF", "testProjectIcon": "#A6E22E",
+                "packageIcon": "#66D9EF", "dependencyIcon": "#A59F85", "errorIcon": "#F92672"},
+    "monokaiDimmed": {"solutionIcon": "#9872A2", "solutionFolderIcon": "#D0B344", "virtualFolderIcon": "#CE6700", "csharpProjectIcon": "#9872A2",
+                      "fsharpProjectIcon": "#408080", "vbProjectIcon": "#6089B4", "sqlProjectIcon": "#CE6700", "webProjectIcon": "#6089B4", "testProjectIcon": "#9AA83A",
+                      "packageIcon": "#6089B4", "dependencyIcon": "#9A9B99", "errorIcon": "#C4625B"},
     "light": {"solutionIcon": "#652D90", "solutionFolderIcon": "#B8862B", "virtualFolderIcon": "#C28A00", "csharpProjectIcon": "#5B3FB0",
               "fsharpProjectIcon": "#0E7C86", "vbProjectIcon": "#1A73C9", "sqlProjectIcon": "#A65E00", "webProjectIcon": "#0060C0", "testProjectIcon": "#2E8B22",
               "packageIcon": "#0060C0", "dependencyIcon": "#616161", "errorIcon": "#D42020"},
@@ -89,7 +127,7 @@ def colors(p):
         "editorIndentGuide.background1": p["border_soft"], "editorIndentGuide.activeBackground1": p["fg_faint"],
         "editorBracketMatch.background": p["sel"] + "60", "editorBracketMatch.border": p["fg_faint"],
         **bracket_colors(p),
-        **{f"codestudio.{k}": v for k, v in EXPLORER[p["type"]].items()},
+        **{f"codestudio.{k}": v for k, v in EXPLORER[p.get("key", p["type"])].items()},
         "editorWhitespace.foreground": p["fg_faint"] + "60", "editorRuler.foreground": p["border_soft"],
         "editorCodeLens.foreground": p["fg_muted"],
         "editorError.foreground": p["error"], "editorWarning.foreground": p["warning"], "editorInfo.foreground": p["info"],
@@ -208,7 +246,8 @@ def semantic(p):
     }
 
 root = pathlib.Path(__file__).resolve().parent.parent / "themes"
-for p, fname in [(DARK, "codestudio-dark-color-theme.json"), (LIGHT, "codestudio-light-color-theme.json")]:
+for p, fname in [(DARK, "codestudio-dark-color-theme.json"), (LIGHT, "codestudio-light-color-theme.json"),
+                 (MONOKAI, "codestudio-monokai-color-theme.json"), (MONOKAI_DIMMED, "codestudio-monokai-dimmed-color-theme.json")]:
     theme = {
         "$schema": "vscode://schemas/color-theme",
         "name": p["name"], "type": p["type"], "semanticHighlighting": True,
