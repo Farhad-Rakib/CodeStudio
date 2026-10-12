@@ -2,7 +2,7 @@
   "name": "codeXstudio",
   "displayName": "CodeXStudio - .NET Dev Assistant",
   "description": "A Visual Studio-inspired Solution Explorer, virtual solution folders, .NET CLI commands and themes for VS Code.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "preview": true,
   "publisher": "fhasancse",
   "icon": "images/icon.png",
