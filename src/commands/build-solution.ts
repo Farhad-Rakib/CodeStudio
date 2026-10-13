@@ -4,7 +4,8 @@ import { addProjectToSolutionArgs, addProjectToSolutionFolderArgs, SolutionVerb,
 import { cwdFor } from '../dotnet/dotnet-runner';
 import { SdkNotFoundError } from '../dotnet/sdk-detection';
 import { standardsConfig, standardsEnabled } from '../standards/standards-controller';
-import { CommandContext, registerCommand, requireSolution, solutionFolderTarget } from './command-context';
+import { ExplorerNode } from '../explorer/solution-tree-item';
+import { CommandContext, registerCommand, requireSolution, solutionFolderTarget, UserFacingError } from './command-context';
 import { warnIncompatibleSqlProjects } from './sql-commands';
 
 const VERB_TITLES: Record<Exclude<SolutionVerb, 'test'>, string> = { build: 'Build Solution', restore: 'Restore Solution', clean: 'Clean Solution' };
@@ -50,6 +51,18 @@ export function registerSolutionCommands(ctx: CommandContext): void {
       await runDotnetTarget(ctx, verb, model.path, `${title}: ${model.name}`);
     });
   }
+
+  registerCommand(ctx, 'codestudio.showAllFiles', 'Show All Files', () => ctx.provider.setShowAllFiles(true));
+  registerCommand(ctx, 'codestudio.hideAllFiles', 'Hide Files Not in Solution', () => ctx.provider.setShowAllFiles(false));
+
+  registerCommand(ctx, 'codestudio.includeInSolution', 'Include in Solution', async (node?: ExplorerNode) => {
+    const { model } = requireSolution(ctx);
+    node ??= ctx.provider.selection[0]; // keybindings pass no node
+    if (node?.type !== 'unlistedProject') throw new UserFacingError('Select a project that is not in the solution.');
+    await ctx.runner.exec(addProjectToSolutionArgs(model.path, node.absolutePath), model.directory);
+    void vscode.window.showInformationMessage(`CodeXStudio: Added ${path.basename(node.absolutePath)} to ${model.name}.`);
+    await ctx.manager.reload();
+  });
 
   registerCommand(ctx, 'codestudio.addExistingProject', 'Add Existing Project', async (node?: unknown) => {
     const { model } = requireSolution(ctx);

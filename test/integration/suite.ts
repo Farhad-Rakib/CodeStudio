@@ -376,6 +376,44 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('Remove Package and Remove Reference on dependency nodes edit the project via dotnet remove', async () => {
+    const csproj = path.join(workspace, 'tests', 'Sample.Tests', 'Sample.Tests.csproj');
+    await execDotnet(['add', csproj, 'package', 'Newtonsoft.Json', '--version', '13.0.1', '--no-restore'], workspace);
+    await api.manager.reload();
+    const dependency = async (group: 'packages' | 'projects', match: (n: ExplorerNode) => boolean) => {
+      const [deps] = await api.provider.getChildren(await projectNode(api, 'Sample.Tests'));
+      assert.equal(deps.type, 'dependencies');
+      const groupNode = (await api.provider.getChildren(deps)).find(n => n.type === 'dependencyGroup' && n.group === group);
+      return groupNode && (await api.provider.getChildren(groupNode)).find(match); // empty groups are hidden
+    };
+    const pkg = await dependency('packages', n => n.type === 'package' && n.pkg.id === 'Newtonsoft.Json');
+    assert.ok(pkg, 'package node shown');
+    assert.equal((await api.provider.getTreeItem(pkg)).contextValue, 'package');
+    const ref = await dependency('projects', n => n.type === 'projectReference' && n.ref.name === 'Sample.Core');
+    assert.ok(ref, 'project reference node shown');
+    assert.equal((await api.provider.getTreeItem(ref)).contextValue, 'projectReference');
+
+    stub('showInformationMessage', async () => undefined);
+    stub('showWarningMessage', async () => undefined); // cancel keeps everything
+    await vscode.commands.executeCommand('codestudio.removePackage', pkg);
+    assert.match(readFileSync(csproj, 'utf8'), /Newtonsoft\.Json/);
+
+    stub('showWarningMessage', async (m: string) => { assert.match(m, /Newtonsoft\.Json/); return 'Remove'; });
+    await vscode.commands.executeCommand('codestudio.removePackage', pkg);
+    assert.doesNotMatch(readFileSync(csproj, 'utf8'), /Newtonsoft/);
+    assert.equal(await dependency('packages', n => n.type === 'package' && n.pkg.id === 'Newtonsoft.Json'), undefined);
+
+    stub('showWarningMessage', async (m: string) => { assert.match(m, /Sample\.Core/); return 'Remove'; });
+    await vscode.commands.executeCommand('codestudio.removeProjectReference', ref);
+    restoreStubs(); watchErrors();
+    assert.doesNotMatch(readFileSync(csproj, 'utf8'), /Sample\.Core\.csproj/);
+    assert.equal(await dependency('projects', n => n.type === 'projectReference' && n.ref.name === 'Sample.Core'), undefined);
+
+    // Restore the reference for later steps.
+    await execDotnet(['add', csproj, 'reference', path.join(workspace, 'src', 'Sample.Core', 'Sample.Core.csproj')], workspace);
+    await api.manager.reload();
+  });
+
   await step('Formatter (dotnet format and CSharpier) and C# bracket colorization defaults', async () => {
     const cs = vscode.workspace.getConfiguration('editor', { languageId: 'csharp' });
     assert.equal(cs.get('bracketPairColorization.enabled'), true);
@@ -581,6 +619,38 @@ export async function run(): Promise<void> {
     }
     restoreStubs(); watchErrors();
     rmSync(docsDir, { recursive: true, force: true });
+  });
+
+  await step('Show All Files lists projects missing from the solution; Include in Solution adds them back', async () => {
+    const dir = path.join(workspace, 'src', 'Sample.Orphan');
+    mkdirSync(dir, { recursive: true });
+    const csproj = path.join(dir, 'Sample.Orphan.csproj');
+    writeFileSync(csproj, '<Project Sdk="Microsoft.NET.Sdk">\n  <PropertyGroup>\n    <TargetFramework>net10.0</TargetFramework>\n  </PropertyGroup>\n</Project>\n');
+    const solutionChildren = async () => api.provider.getChildren((await api.provider.getChildren())[0]);
+    const orphan = async () => (await solutionChildren()).find(n => n.type === 'unlistedProject' && n.absolutePath === csproj);
+    try {
+      assert.equal(await orphan(), undefined, 'hidden by default');
+      await vscode.commands.executeCommand('codestudio.showAllFiles');
+      const node = await orphan();
+      assert.ok(node, 'orphan project listed');
+      const item = await api.provider.getTreeItem(node);
+      assert.equal(item.contextValue, 'unlistedProject');
+      assert.match(String(item.description), /not in solution/);
+      assert.ok(!(await solutionChildren()).some(n => n.type === 'unlistedProject' && /Sample\.(App|Core)\.csproj$/.test(n.absolutePath)), 'listed projects are not repeated');
+
+      stub('showInformationMessage', async () => undefined);
+      await vscode.commands.executeCommand('codestudio.includeInSolution', node);
+      restoreStubs(); watchErrors();
+      assert.ok(api.manager.solution!.model.projects.some(p => p.name === 'Sample.Orphan'), 'added to the solution');
+      assert.equal(await orphan(), undefined, 'no longer shown as unlisted');
+    } finally {
+      await vscode.commands.executeCommand('codestudio.hideAllFiles');
+      if (api.manager.solution!.model.projects.some(p => p.name === 'Sample.Orphan')) {
+        await execDotnet(['sln', api.manager.solution!.model.path, 'remove', csproj], workspace);
+      }
+      rmSync(dir, { recursive: true, force: true });
+      await api.manager.reload();
+    }
   });
 
   await step('File operations: new folder, copy/paste, rename, cut/paste, drag and drop, delete', async () => {

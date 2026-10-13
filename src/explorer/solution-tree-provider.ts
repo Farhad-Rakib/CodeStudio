@@ -10,6 +10,7 @@ import { createTreeItem, ExplorerNode } from './solution-tree-item';
 import { buildStructure, filterStructure, StructureNode } from './tree-builder';
 
 import { FileOperationError, transferEntries } from './file-operations';
+import { PROJECT_FILE_GLOB, PROJECT_SCAN_EXCLUDE, unlistedProjects } from './unlisted-projects';
 
 const DRAG_MIME = 'application/vnd.code.tree.codestudio.solutionexplorer';
 
@@ -20,6 +21,7 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
   readonly dropMimeTypes = [DRAG_MIME];
 
   private filterText = '';
+  private showAll = false;
   /** Current tree selection, for keybinding-invoked commands (which receive no node). */
   selection: readonly ExplorerNode[] = [];
 
@@ -43,6 +45,17 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
   setFilter(text: string): void {
     this.filterText = text.trim();
     void vscode.commands.executeCommand('setContext', 'codestudio.filterActive', this.filterText !== '');
+    this.refresh();
+  }
+
+  get showAllFiles(): boolean {
+    return this.showAll;
+  }
+
+  /** Also list project files on disk that the solution does not include (like Visual Studio's Show All Files). */
+  setShowAllFiles(on: boolean): void {
+    this.showAll = on;
+    void vscode.commands.executeCommand('setContext', 'codestudio.showAllFiles', on);
     this.refresh();
   }
 
@@ -84,7 +97,9 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
           structure = filterStructure(structure, this.filterText);
           if (structure.length === 0) return [{ type: 'message', id: 'no-match', text: `No items match "${this.filterText}"`, icon: 'search' }];
         }
-        return structure.map(toNode);
+        const nodes = structure.map(toNode);
+        if (this.showAll && !this.filterText) nodes.push(...await this.unlistedProjectNodes());
+        return nodes;
       }
       case 'structure': {
         const s = node.node;
@@ -109,6 +124,14 @@ export class SolutionTreeProvider implements vscode.TreeDataProvider<ExplorerNod
       default:
         return [];
     }
+  }
+
+  private async unlistedProjectNodes(): Promise<ExplorerNode[]> {
+    const model = this.manager.solution?.model;
+    if (!model) return [];
+    const found = await vscode.workspace.findFiles(new vscode.RelativePattern(model.directory, PROJECT_FILE_GLOB), PROJECT_SCAN_EXCLUDE);
+    return unlistedProjects(found.map(u => u.fsPath), model.projects.map(p => p.absolutePath), model.directory)
+      .map(p => ({ type: 'unlistedProject', ...p }));
   }
 
   private async sqlWarning(info: ProjectInfo): Promise<string | undefined> {

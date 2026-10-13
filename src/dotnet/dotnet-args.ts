@@ -75,6 +75,12 @@ export function addProjectReferenceArgs(project: string, reference: string): str
   return ['add', project, 'reference', reference];
 }
 
+export function removeProjectReferenceArgs(project: string, reference: string): string[] {
+  validateProjectPath(project);
+  validateProjectPath(reference);
+  return ['remove', project, 'reference', reference];
+}
+
 export function addPackageArgs(project: string, packageId: string, version?: string): string[] {
   validateProjectPath(project);
   const idError = validatePackageId(packageId);

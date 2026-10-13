@@ -7,6 +7,7 @@ import {
   addProjectToSolutionArgs,
   DotnetArgumentError,
   removePackageArgs,
+  removeProjectReferenceArgs,
   targetVerbArgs,
   validatePackageId,
   validatePackageVersion,
@@ -49,6 +50,8 @@ describe('dotnet argument construction', () => {
     assert.deepEqual(addPackageArgs(web, 'Serilog', '4.0.0'), ['add', web, 'package', 'Serilog', '--version', '4.0.0']);
     assert.deepEqual(addPackageArgs(web, 'Serilog', '  '), ['add', web, 'package', 'Serilog']);
     assert.deepEqual(removePackageArgs(web, 'Serilog'), ['remove', web, 'package', 'Serilog']);
+    assert.deepEqual(removeProjectReferenceArgs(web, '/r/Lib/Lib.csproj'), ['remove', web, 'reference', '/r/Lib/Lib.csproj']);
+    assert.throws(() => removeProjectReferenceArgs(web, '/r/Lib/readme.txt'));
     assert.ok(validatePackageId('--source'));
     assert.ok(validatePackageId('a b'));
     assert.ok(validatePackageId(''));

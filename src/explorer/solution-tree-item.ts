@@ -20,6 +20,8 @@ export type ExplorerNode =
   | { readonly type: 'file'; readonly uri: vscode.Uri; readonly scope: string }
   /** The .dacpac a SQL database project builds for the active configuration. */
   | { readonly type: 'buildOutput'; readonly project: SolutionProject; readonly uri: vscode.Uri; readonly configuration: string; readonly exists: boolean }
+  /** A project file under the solution directory that the solution does not list (Show All Files). */
+  | { readonly type: 'unlistedProject'; readonly absolutePath: string; readonly relativePath: string }
   | { readonly type: 'message'; readonly id: string; readonly text: string; readonly icon: string };
 
 // Colors contributed in package.json (`contributes.colors`): themes can define them and users can
@@ -53,6 +55,7 @@ export function explorerNodeId(node: ExplorerNode, suffix = ''): string {
     case 'physicalFolder': return `dir:${node.project.key}:${node.uri.fsPath}`;
     case 'file': return `file:${node.scope}:${node.uri.fsPath}`;
     case 'buildOutput': return `out:${node.project.key}`;
+    case 'unlistedProject': return `unlisted:${node.absolutePath}`;
     case 'message': return `msg:${node.id}`;
   }
 }
@@ -198,6 +201,15 @@ export function createTreeItem(node: ExplorerNode, filterActive: boolean, info?:
         ? `Build output for ${node.configuration}: ${node.uri.fsPath}`
         : `Build the project to create ${node.uri.fsPath}`;
       item.contextValue = node.exists ? 'dacpac' : 'dacpac.missing';
+      break;
+    case 'unlistedProject':
+      item = new vscode.TreeItem(path.basename(node.absolutePath), vscode.TreeItemCollapsibleState.None);
+      item.description = `${path.posix.dirname(node.relativePath) === '.' ? '' : path.posix.dirname(node.relativePath) + ' '}(not in solution)`;
+      item.iconPath = new vscode.ThemeIcon('project', new vscode.ThemeColor('disabledForeground'));
+      item.tooltip = `${node.absolutePath}\nOn disk but not listed in the solution. Right-click > Include in Solution to add it.`;
+      item.resourceUri = vscode.Uri.file(node.absolutePath);
+      item.command = { command: 'vscode.open', title: 'Open', arguments: [vscode.Uri.file(node.absolutePath)] };
+      item.contextValue = 'unlistedProject';
       break;
     case 'message':
       item = new vscode.TreeItem(node.text, vscode.TreeItemCollapsibleState.None);

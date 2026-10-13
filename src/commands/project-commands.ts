@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { addProjectReferenceArgs } from '../dotnet/dotnet-args';
+import { addProjectReferenceArgs, removePackageArgs, removeProjectReferenceArgs } from '../dotnet/dotnet-args';
 import { ExplorerNode } from '../explorer/solution-tree-item';
 import { NuGetFeeds } from '../nuget/nuget-feeds';
 import { NuGetPanel } from '../nuget/nuget-panel';
@@ -61,6 +61,32 @@ export function registerProjectCommands(ctx: CommandContext): void {
     await ctx.manager.reload();
   });
 
+  registerCommand(ctx, 'codestudio.removeProjectReference', 'Remove Project Reference', async (node?: ExplorerNode) => {
+    node ??= ctx.provider.selection[0]; // keybindings pass no node
+    if (node?.type !== 'projectReference') throw new UserFacingError('Select a project reference in Solution Explorer.');
+    const { project, ref } = node;
+    const answer = await vscode.window.showWarningMessage(
+      `Remove the reference to ${ref.name} from ${project.name}?`, { modal: true }, 'Remove',
+    );
+    if (answer !== 'Remove') return;
+    await ctx.runner.exec(removeProjectReferenceArgs(project.absolutePath, ref.absolutePath), path.dirname(project.absolutePath));
+    void vscode.window.showInformationMessage(`CodeXStudio: Removed reference to ${ref.name} from ${project.name}.`);
+    await ctx.manager.reload();
+  });
+
+  registerCommand(ctx, 'codestudio.removePackage', 'Remove NuGet Package', async (node?: ExplorerNode) => {
+    node ??= ctx.provider.selection[0]; // keybindings pass no node
+    if (node?.type !== 'package') throw new UserFacingError('Select a NuGet package in Solution Explorer.');
+    const { project, pkg } = node;
+    const answer = await vscode.window.showWarningMessage(
+      `Remove the NuGet package ${pkg.id} from ${project.name}?`, { modal: true }, 'Remove',
+    );
+    if (answer !== 'Remove') return;
+    await ctx.runner.exec(removePackageArgs(project.absolutePath, pkg.id), path.dirname(project.absolutePath));
+    void vscode.window.showInformationMessage(`CodeXStudio: Removed ${pkg.id} from ${project.name}.`);
+    await ctx.manager.reload();
+  });
+
   registerCommand(ctx, 'codestudio.manageNuGetPackages', 'Manage NuGet Packages', async (node?: unknown) => {
     const project = await resolveProject(ctx, node, 'Manage NuGet packages for which project?');
     if (!project) return undefined;
@@ -80,6 +106,7 @@ export function registerProjectCommands(ctx: CommandContext): void {
     if (node?.type === 'file' || node?.type === 'physicalFolder' || (node?.type === 'buildOutput' && node.exists)) uri = node.uri;
     else if (node?.type === 'structure' && node.node.kind === 'project') uri = vscode.Uri.file(node.node.project.absolutePath);
     else if (node?.type === 'structure' && node.node.kind === 'solutionItem') uri = vscode.Uri.file(node.node.filePath);
+    else if (node?.type === 'unlistedProject') uri = vscode.Uri.file(node.absolutePath);
     if (uri) await vscode.commands.executeCommand('revealFileInOS', uri);
   });
 }

@@ -251,6 +251,36 @@
         "category": "CodeXStudio"
       },
       {
+        "command": "codestudio.showAllFiles",
+        "title": "Show All Files",
+        "category": "CodeXStudio",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "codestudio.hideAllFiles",
+        "title": "Hide Files Not in Solution",
+        "category": "CodeXStudio",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "codestudio.includeInSolution",
+        "title": "Include in Solution",
+        "category": "CodeXStudio",
+        "icon": "$(add)"
+      },
+      {
+        "command": "codestudio.removeProjectReference",
+        "title": "Remove Reference",
+        "category": "CodeXStudio",
+        "icon": "$(close)"
+      },
+      {
+        "command": "codestudio.removePackage",
+        "title": "Remove Package",
+        "category": "CodeXStudio",
+        "icon": "$(close)"
+      },
+      {
         "command": "codestudio.manageNuGetPackages",
         "title": "Manage NuGet Packages...",
         "category": "CodeXStudio",
@@ -386,6 +416,16 @@
     "menus": {
       "view/title": [
         {
+          "command": "codestudio.showAllFiles",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded && !codestudio.showAllFiles",
+          "group": "navigation@3"
+        },
+        {
+          "command": "codestudio.hideAllFiles",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && codestudio.solutionLoaded && codestudio.showAllFiles",
+          "group": "navigation@3"
+        },
+        {
           "command": "codestudio.openSolution",
           "when": "view =~ /^codestudio\\.solutionExplorer/",
           "group": "navigation@1"
@@ -482,6 +522,31 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "codestudio.includeInSolution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == unlistedProject",
+          "group": "inline"
+        },
+        {
+          "command": "codestudio.includeInSolution",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == unlistedProject",
+          "group": "1_include@1"
+        },
+        {
+          "command": "codestudio.revealInOS",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == unlistedProject",
+          "group": "9_reveal@1"
+        },
+        {
+          "command": "codestudio.removeProjectReference",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == projectReference",
+          "group": "6_modification@1"
+        },
+        {
+          "command": "codestudio.removePackage",
+          "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == package",
+          "group": "6_modification@1"
+        },
         {
           "command": "codestudio.openSolution",
           "when": "view =~ /^codestudio\\.solutionExplorer/ && viewItem == solution",
@@ -719,6 +784,18 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "codestudio.includeInSolution",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.removeProjectReference",
+          "when": "false"
+        },
+        {
+          "command": "codestudio.removePackage",
+          "when": "false"
+        },
         {
           "command": "codestudio.renameVirtualFolder",
           "when": "false"
@@ -1181,6 +1258,18 @@
         "key": "delete",
         "mac": "cmd+backspace",
         "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem == solutionFolder"
+      },
+      {
+        "command": "codestudio.removeProjectReference",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem == projectReference"
+      },
+      {
+        "command": "codestudio.removePackage",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "focusedView =~ /^codestudio\\.solutionExplorer/ && !inputFocus && viewItem == package"
       },
       {
         "command": "codestudio.removeProject",
